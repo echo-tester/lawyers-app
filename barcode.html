@@ -1,0 +1,236 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الباركود</title>
+
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link href="css/local-fonts.css" rel="stylesheet" />
+
+  <style>
+    .low-power *,
+    .low-power *::before,
+    .low-power *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      backdrop-filter: none !important;
+    }
+
+    @media (max-width:768px) {
+      #barcode-layout.search-layout {
+        max-width: none;
+      }
+
+      #barcode-history-btn {
+        display: none !important;
+      }
+
+      #barcode-history-pane {
+        padding: 0 !important;
+        background: #f8fafc !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      body.barcode-history-open main {
+        overflow: hidden !important;
+      }
+
+      body.barcode-history-open #barcode-main-pane {
+        visibility: hidden !important;
+        pointer-events: none !important;
+      }
+
+      #barcode-history-pane.barcode-history-pane-open {
+        right: 0 !important;
+        z-index: 80 !important;
+        opacity: 1 !important;
+        visibility: visible !important;
+        box-shadow: -8px 0 24px rgba(15, 23, 42, .18) !important;
+      }
+
+      body.barcode-history-open #barcode-layout::before {
+        content: "";
+        position: fixed;
+        top: 48px;
+        right: 0;
+        bottom: 0;
+        left: 0;
+        background: rgba(0, 0, 0, .35);
+        z-index: 55;
+      }
+
+      #barcode-history-pane #barcode-history {
+        min-height: 100%;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+        background: #ffffff;
+        opacity: 1 !important;
+        visibility: visible !important;
+      }
+
+      #barcode-history-pane #barcode-history-list {
+        min-height: calc(100vh - 120px);
+      }
+    }
+  </style>
+</head>
+
+<body class="h-screen overflow-hidden flex flex-col low-power barcode-page" style="background: #ffffff;">
+
+  <header class="fixed top-0 left-0 right-0 z-40 px-2 py-1 bg-blue-900 border-b border-blue-900">
+    <div class="grid grid-cols-3 items-center">
+      <div class="justify-self-start">
+        <button id="back-to-main"
+          class="inline-flex items-center gap-1 px-2 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+          <i class="ri-arrow-right-line text-white text-base"></i>
+          <span class="text-white">الرئيسيه</span>
+        </button>
+      </div>
+
+      <div class="justify-self-center">
+        <button id="copyable-title"
+          class="inline-flex items-center gap-1 px-3 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold"
+          title="اضغط للنسخ">
+          <i class="ri-qr-code-line text-white text-base"></i>
+          <span class="text-sm font-semibold text-white" id="page-title">الباركود</span>
+        </button>
+      </div>
+
+      <div class="justify-self-end"></div>
+    </div>
+  </header>
+
+  <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-checkbox" />
+  <label for="sidebar-toggle" class="mobile-sidebar-toggle" title="القائمة">
+    <i class="ri-arrow-left-s-line open-icon"></i>
+    <i class="ri-arrow-right-s-line close-icon"></i>
+  </label>
+
+  <main class="flex-1 p-0" style="padding-top: 48px; height: calc(100vh - 48px); overflow:auto; background: #ffffff;">
+    <div class="w-full h-full p-3">
+      <div id="barcode-layout" class="max-w-3xl mx-auto space-y-3 search-layout">
+
+        <div id="barcode-main-pane" class="space-y-3">
+
+          <div id="barcode-camera-card" class="rounded-2xl border border-gray-200 overflow-hidden"
+            style="background:#f0f9ff;">
+            <div id="barcode-video-wrap" class="relative" style="height: min(70vh, 520px);">
+              <video id="barcode-video" class="w-full h-full" autoplay muted playsinline
+                style="object-fit: cover; border-radius: 12px;"></video>
+
+              <div id="barcode-desktop-start-overlay"
+                style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;padding:16px;">
+                <div id="barcode-desktop-overlay-actions" style="display:inline-grid;gap:10px;justify-items:center;justify-content:center;max-width:100%;">
+                  <div id="barcode-desktop-overlay-top-actions" style="display:grid;grid-template-columns:repeat(2,max-content);gap:10px;align-items:center;justify-content:center;max-width:100%;">
+                    <button id="barcode-desktop-start-btn" type="button"
+                      class="px-5 py-4 rounded-2xl font-black text-white inline-flex items-center justify-center gap-2"
+                      style="background: #ef4444; border:1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 25px rgba(239, 68, 68, 0.25);">
+                      <i class="ri-camera-line text-white text-xl"></i>
+                      <span>فتح الكاميرا</span>
+                    </button>
+
+                    <button id="barcode-desktop-pick-btn" type="button"
+                      class="px-5 py-4 rounded-2xl font-black text-white inline-flex items-center justify-center gap-2"
+                      style="background: #3b82f6; border:1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 25px rgba(59, 130, 246, 0.25);">
+                      <i class="ri-image-line text-white text-xl"></i>
+                      <span>اختيار صورة</span>
+                    </button>
+                  </div>
+
+                  <button id="barcode-lawyer-card-desktop-btn" type="button"
+                    class="px-5 py-4 rounded-2xl font-black text-white inline-flex items-center justify-center gap-2"
+                    style="background: #0f172a; border:1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);">
+                    <i class="ri-qr-code-line text-white text-xl"></i>
+                    <span>كارت المحامى</span>
+                  </button>
+                </div>
+              </div>
+
+              <div id="barcode-hint"
+                class="absolute left-3 right-3 bottom-3 px-3 py-2 rounded-xl text-center text-white text-sm font-bold"
+                style="background: rgba(15,23,42,0.55); border: 1px solid rgba(255,255,255,0.12);">
+
+              </div>
+            </div>
+
+            <div id="barcode-camera-actions" class="p-3 grid grid-cols-1 gap-2"
+              style="background: rgba(255,255,255,0.06);">
+              <button id="barcode-image-btn" type="button"
+                class="px-3 py-3 rounded-xl font-bold text-white inline-flex items-center justify-center gap-2"
+                style="background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.16);">
+                <i class="ri-image-line text-white text-lg"></i>
+                <span>صورة</span>
+              </button>
+
+              <button id="barcode-history-btn" type="button"
+                class="px-3 py-3 rounded-xl font-bold text-white inline-flex items-center justify-center gap-2"
+                style="background: rgba(255,255,255,0.12); border:1px solid rgba(255,255,255,0.16);">
+                <i class="ri-history-line text-white text-lg"></i>
+                <span>السجل</span>
+              </button>
+
+              <button id="barcode-lawyer-card-btn" type="button"
+                class="px-5 py-4 rounded-2xl font-black text-white inline-flex items-center justify-center gap-2"
+                style="background: #0f172a; border:1px solid rgba(255,255,255,0.2); box-shadow: 0 10px 25px rgba(15, 23, 42, 0.25);">
+                <i class="ri-qr-code-line text-white text-xl"></i>
+                <span>كارت المحامى</span>
+              </button>
+
+              <input id="barcode-file-input" type="file" accept="image/*" style="display:none;" />
+            </div>
+          </div>
+
+          <div id="barcode-result" class="hidden rounded-2xl border border-gray-200 p-3 bg-white">
+            <div class="font-bold text-gray-800 mb-2">محتوى الباركود</div>
+            <div id="barcode-result-text" class="text-sm text-gray-900 whitespace-pre-wrap break-words"
+              style="direction:ltr;text-align:left;"></div>
+            <div class="mt-3 flex gap-2">
+              <button id="barcode-copy-btn" type="button"
+                class="flex-1 px-4 py-3 bg-blue-600 text-white rounded-xl font-bold">نسخ</button>
+              <button id="barcode-resume-btn" type="button"
+                class="px-4 py-3 border border-gray-300 rounded-xl font-bold">رجوع للكاميرا</button>
+            </div>
+          </div>
+
+        </div>
+
+        <div id="barcode-history-pane" class="search-left-pane">
+
+          <div id="barcode-history" class="rounded-2xl border border-gray-200 p-3 bg-white">
+            <div class="flex items-center justify-between mb-2">
+              <div class="font-bold text-gray-800">السجل</div>
+              <div></div>
+            </div>
+            <div id="barcode-history-list" class="space-y-2"></div>
+          </div>
+
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/jsqr.js"></script>
+  <script src="js/qrcode.min.js"></script>
+  <script src="js/lawyer-card.js"></script>
+  <script src="js/barcode-page.js"></script>
+</body>
+
+</html>

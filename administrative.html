@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>إدارة الأعمال الإدارية</title>
+
+
+    <link rel="stylesheet" href="css/tailwind.min.css">
+
+
+    <link rel="stylesheet" href="css/remixicon.css">
+
+
+    <link rel="stylesheet" href="css/style.css">
+
+    <link rel="stylesheet" href="css/search-responsive.css?v=3">
+    <style>
+        .low-power *,
+        .low-power *::before,
+        .low-power *::after {
+            animation: none !important;
+            transition: none !important;
+            box-shadow: none !important;
+            text-shadow: none !important;
+            filter: none !important;
+            transform: none !important;
+            backdrop-filter: none !important;
+        }
+
+        /* Hide sidebar toggle on specific screens */
+        .hide-sidebar-toggle .mobile-sidebar-toggle {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<body class="h-screen overflow-hidden flex flex-col low-power administrative-page"
+    style="background: linear-gradient(135deg, #334155, #111827, #1e3a8a);">
+
+
+    <header class="fixed top-0 left-0 right-0 z-40 px-2 py-1 bg-blue-900 border-b border-blue-900">
+        <div class="grid grid-cols-3 items-center">
+
+            <div class="justify-self-start">
+                <button id="back-to-main"
+                    class="inline-flex items-center gap-1 px-2 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+                    <i class="ri-arrow-right-line text-white text-base"></i>
+                    <span class="text-white">الرئيسيه</span>
+                </button>
+            </div>
+
+
+            <div class="justify-self-center">
+                <button id="copyable-title"
+                    class="inline-flex items-center gap-1 px-3 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold"
+                    title="اضغط للنسخ">
+                    <i class="ri-briefcase-line text-white text-base"></i>
+                    <span class="text-sm font-semibold text-white" id="page-title">إدارة الأعمال الإدارية</span>
+                </button>
+            </div>
+
+
+            <div class="justify-self-end"></div>
+        </div>
+    </header>
+
+
+    <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-checkbox" />
+    <label for="sidebar-toggle" class="mobile-sidebar-toggle" title="القائمة">
+        <i class="ri-arrow-left-s-line open-icon"></i>
+        <i class="ri-arrow-right-s-line close-icon"></i>
+    </label>
+    <main class="flex-1 p-0" style="padding-top: 48px; height: calc(100vh - 48px); overflow:auto;">
+        <div class="w-full h-full">
+            <div class="border-0 bg-white h-full">
+                <div id="modal-container" class="transition-all duration-300 w-full h-full">
+                    <div class="flex justify-between items-center mb-2 px-4 py-3 border-b border-blue-200/60 hidden">
+                        <button id="modal-close-button" class="text-gray-600 hover:text-gray-800" title="رجوع">
+                            <i class="ri-arrow-go-back-line text-xl"></i>
+                        </button>
+                        <h2 id="modal-title" class="text-lg font-semibold text-gray-900"></h2>
+                    </div>
+                    <div id="modal-content" class="px-4 pb-4 text-gray-900"></div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+
+    <div id="toast-container"></div>
+
+
+    <script src="js/state.js"></script>
+    <script src="js/db.js"></script>
+    <script src="js/toast.js"></script>
+    <script src="js/safe-confirm.js"></script>
+    <script src="js/autocomplete.js"></script>
+    <script src="js/date-picker.js"></script>
+    <script src="js/modal.js"></script>
+    <script src="js/header.js"></script>
+    <script src="js/sessions.js"></script>
+    <script src="js/sessions_calendar.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/client_view.js"></script>
+    <script src="js/case_opponent_view.js"></script>
+    <script src="js/opponent_navigation.js"></script>
+    <script src="js/inline_edit.js"></script>
+    <script src="js/accounts.js"></script>
+    <script src="js/administrative.js"></script>
+    <script src="js/clerk_papers.js"></script>
+    <script src="js/expert_sessions.js"></script>
+    <script src="js/legal_library.js"></script>
+    <script src="js/reports-main.js"></script>
+    <script src="js/reports-accounts.js"></script>
+    <script src="js/reports-administrative.js"></script>
+    <script src="js/reports-clerk-papers.js"></script>
+    <script src="js/reports-expert-sessions.js"></script>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', async function () {
+            try {
+                await initDB();
+                await updateCountersInHeader();
+            } catch (e) {
+                console.error('DB init error:', e);
+            }
+
+            try {
+                stateManager.setModalHistory([]);
+                navigateTo(displayAdministrativeModal);
+            } catch (e) {
+                console.error('Init administrative error:', e);
+            }
+
+            // زر الرجوع في الهيدر يرجع للرئيسية
+            const backBtn = document.getElementById('back-to-main');
+            backBtn?.addEventListener('click', () => {
+                window.location.href = 'index.html';
+            });
+
+            // عنوان الهيدر
+            const pageHeaderTitle = document.getElementById('page-title');
+            if (pageHeaderTitle) pageHeaderTitle.textContent = 'إدارة الأعمال الإدارية';
+
+            // زر الرجوع داخل الحاوية يرجع خطوة في نفس الصفحة
+            const closeButton = document.getElementById('modal-close-button');
+            closeButton?.addEventListener('click', () => {
+                if (!stateManager || !stateManager.modalHistory || stateManager.modalHistory.length <= 1) {
+                    window.location.href = 'index.html';
+                } else {
+                    navigateBack();
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

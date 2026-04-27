@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>جلسات الخبراء</title>
+
+  
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/search-responsive.css?v=3">
+  <style>
+    .low-power *, .low-power *::before, .low-power *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      backdrop-filter: none !important;
+    }
+      </style>
+</head>
+<body class="min-h-screen flex flex-col low-power text-sm bg-black expert-sessions-page">
+
+  <header class="fixed top-0 left-0 right-0 z-40 px-2 py-0.5 bg-blue-900 border-b border-blue-900">
+    <div class="w-full">
+      <div class="grid grid-cols-3 items-center">
+        <div class="justify-self-start">
+          <button id="back-to-main" class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+            <i class="ri-arrow-right-line text-white text-sm"></i>
+            <span class="text-white">الرئيسيه</span>
+          </button>
+        </div>
+        
+        <div class="justify-self-center">
+          <button id="copyable-title" class="inline-flex items-center gap-1 px-2 py-0.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold" title="اضغط للنسخ">
+            <i class="ri-team-line text-white text-sm"></i>
+            <span class="text-sm font-semibold text-white" id="page-title">جلسات الخبراء</span>
+          </button>
+        </div>
+        
+        <div class="justify-self-end"></div>
+      </div>
+    </div>
+  </header>
+
+  <input type="checkbox" id="sidebar-toggle" class="sidebar-toggle-checkbox" />
+  <label for="sidebar-toggle" class="mobile-sidebar-toggle" title="القائمة">
+      <i class="ri-arrow-left-s-line open-icon"></i>
+      <i class="ri-arrow-right-s-line close-icon"></i>
+  </label>
+
+  <main class="flex-1 p-0 mt-10">
+    <div class="container mx-auto px-0 py-0 max-w-full">
+      <div class="bg-white rounded-none shadow-none border-0 p-0 min-h-screen">
+        <div id="expert-sessions-content-container">
+          <div id="modal-container" class="p-0" data-lock-size="true">
+            <div class="hidden">
+              <button id="modal-close-button"></button>
+              <h2 id="modal-title"></h2>
+            </div>
+            <div id="modal-content" class="text-gray-600"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+  
+  <div id="modal" class="fixed inset-0 bg-black/60 hidden z-50 overflow-y-auto">
+    <div class="flex items-start justify-center min-h-screen py-2 px-2">
+      <div id="modal-popup-container" class="bg-white rounded-lg max-w-7xl w-[95vw] my-4">
+        <div class="flex justify-between items-center mb-2 px-4 py-3 border-b border-gray-200">
+          <button id="modal-popup-close-button" class="text-gray-500">
+            <i class="ri-close-line text-xl"></i>
+          </button>
+          <h2 id="modal-popup-title" class="text-lg font-semibold text-gray-800"></h2>
+        </div>
+        <div id="modal-popup-content" class="px-4 pb-4"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/safe-confirm.js"></script>
+  <script src="js/autocomplete.js"></script>
+  <script src="js/date-picker.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/expert_sessions.js"></script>
+  <script src="js/expert_sessions_form.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        await initDB();
+        
+        if (window.stateManager && typeof stateManager.setModalHistory === 'function') {
+          stateManager.setModalHistory([]);
+          stateManager.pushToModalHistory({ func: displayExpertSessionsModal, args: [] });
+        }
+        await displayExpertSessionsModal();
+
+        const backToMainBtn = document.getElementById('back-to-main');
+        if (backToMainBtn) {
+          backToMainBtn.addEventListener('click', function () {
+            window.location.href = 'index.html';
+          });
+        }
+
+        const closeBtn = document.getElementById('modal-close-button');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function () {
+            const title = (document.getElementById('modal-title')?.textContent || '').trim();
+            const inForm = title.includes('تعديل جلسة خبير') || title.includes('إضافة جلسة خبير جديدة');
+            if (inForm && typeof navigateBack === 'function') {
+              navigateBack();
+            } else {
+              window.location.href = 'index.html';
+            }
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        alert('تعذر فتح نافذة جلسات الخبراء');
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الإعداد لأول مرة</title>
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link href="css/local-fonts.css" rel="stylesheet"/>
+  <style>
+    body { font-family: 'Roboto','Cairo',sans-serif; background:#0b1020; color:#fff; }
+    .card { background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.12); }
+    .step-dot { width: 10px; height: 10px; border-radius: 9999px; background: rgba(255,255,255,0.3); }
+    .step-dot.active { background: #fff; }
+    .btn-primary { background:#7c3aed; }
+    .btn-primary:hover { background:#6d28d9; }
+    .btn-secondary { background:#111827; border:1px solid rgba(255,255,255,0.12); }
+    .btn-secondary:hover { background:#0b1220; }
+    input, button { outline: none; }
+    input { color:#111; }
+    /* Mobile-only tweaks scoped to setup wizard */
+    @media (max-width: 768px) {
+      #setup-wizard { max-width: 100% !important; width: 100% !important; border-radius: 0.75rem; padding: 16px; }
+      #setup-wizard .text-2xl { font-size: 1.25rem; }
+      #setup-wizard .text-3xl { font-size: 1.5rem; }
+      #setup-wizard .material-symbols-outlined { font-size: 20px; }
+      #setup-wizard #steps-indicator { gap: 6px; }
+      #setup-wizard .step-dot { width: 8px; height: 8px; }
+      /* Navigation layout on mobile: stacked, full-width */
+      #setup-wizard .wizard-nav { flex-direction: column !important; align-items: stretch !important; gap: 10px; padding-top: 12px; }
+      #setup-wizard .wizard-nav > .flex.items-center.gap-2 { flex-direction: column !important; align-items: stretch !important; gap: 8px; width: 100%; }
+      #setup-wizard #prev-btn, #setup-wizard #next-btn, #setup-wizard #skip-btn { width: 100% !important; }
+      #setup-wizard button { padding-top: 12px; padding-bottom: 12px; }
+    }
+    @media (max-width: 400px) {
+      #setup-wizard { padding: 12px; }
+      #setup-wizard .px-6 { padding-left: 16px !important; padding-right: 16px !important; }
+      #setup-wizard .px-5 { padding-left: 14px !important; padding-right: 14px !important; }
+      #setup-wizard .px-4 { padding-left: 12px !important; padding-right: 12px !important; }
+    }
+    /* Unified navigation styling */
+    .wizard-nav { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 16px; }
+    .wizard-nav .btn-prev, .wizard-nav .btn-next, .wizard-nav .btn-skip {
+      border-radius: 0.75rem;
+      box-shadow: 0 6px 16px rgba(0,0,0,0.25);
+    }
+    .wizard-nav .btn-prev { background:#0f172a; border:1px solid rgba(255,255,255,0.12); color:#fff; }
+    .wizard-nav .btn-prev:hover { background:#0b1220; }
+    .wizard-nav .btn-next { background:#7c3aed; color:#fff; }
+    .wizard-nav .btn-next:hover { background:#6d28d9; }
+    .wizard-nav .btn-skip { background:transparent; border:1px dashed rgba(255,255,255,0.25); color:#fff; }
+    .wizard-nav .btn-skip:hover { background:rgba(255,255,255,0.06); }
+  </style>
+  <script src="js/db.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/header.js"></script>
+</head>
+<body class="min-h-screen">
+  <div class="fixed inset-0 pointer-events-none" style="background: radial-gradient(1000px 600px at 80% -10%, rgba(124,58,237,0.35), transparent), radial-gradient(800px 500px at 10% 110%, rgba(59,130,246,0.25), transparent);"></div>
+
+  <div class="relative z-10 flex items-center justify-center min-h-screen px-4">
+    <div id="setup-wizard" class="w-full max-w-2xl card rounded-2xl p-6 md:p-8 shadow-2xl">
+      <div class="flex items-center justify-between mb-6">
+        <div class="text-lg font-bold flex items-center gap-2">
+          <span class="material-symbols-outlined text-white">settings</span>
+          <span>الإعداد لأول مرة</span>
+        </div>
+        <div id="steps-indicator" class="flex items-center gap-2"></div>
+      </div>
+
+      <div id="step-container"></div>
+
+      <div class="mt-8 flex items-center justify-between wizard-nav">
+        <button id="prev-btn" class="btn-prev text-white px-5 py-3 rounded-xl disabled:opacity-40 hidden">السابق</button>
+        <div class="flex items-center gap-2 ml-auto">
+          <button id="skip-btn" class="btn-skip text-white px-4 py-3 rounded-xl hidden">تخطي</button>
+          <button id="next-btn" class="btn-next text-white px-6 py-3 rounded-xl">التالي</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="js/setup.js"></script>
+</body>
+</html>
+

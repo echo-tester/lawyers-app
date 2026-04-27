@@ -1,0 +1,951 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>المحامى الرقمى</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0EA5E9" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link href="css/local-fonts.css" rel="stylesheet" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    :root {
+      --md-sys-color-primary: #0EA5E9;
+      --md-sys-color-on-primary: #FFFFFF;
+      --md-sys-color-primary-container: #E0F2FE;
+      --md-sys-color-on-primary-container: #083344;
+      --md-sys-color-secondary: #22C55E;
+      --md-sys-color-on-secondary: #FFFFFF;
+      --md-sys-color-secondary-container: #DCFCE7;
+      --md-sys-color-on-secondary-container: #14532D;
+      --md-sys-color-tertiary: #F59E0B;
+      --md-sys-color-on-tertiary: #FFFFFF;
+      --md-sys-color-tertiary-container: #FEF3C7;
+      --md-sys-color-on-tertiary-container: #7C2D12;
+      --md-sys-color-surface: #F8FAFC;
+      --md-sys-color-on-surface: #0F172A;
+      --md-sys-color-surface-variant: #F1F5F9;
+      --md-sys-color-on-surface-variant: #334155;
+      --md-sys-color-outline: #94A3B8;
+      --md-sys-color-outline-variant: #CBD5E1;
+    }
+
+    body {
+      font-family: 'Roboto', 'Cairo', sans-serif;
+      background: #0f172a !important;
+      /* خلفية كحلي غامق افتراضية للكمبيوتر */
+      color: #0f172a;
+    }
+
+    /* للهاتف فقط نستخدم التدرج */
+    @media (max-width: 768px) {
+      body {
+        background: linear-gradient(135deg, #123a7a 0%, #1b4b9a 100%) !important;
+      }
+    }
+
+    .material-symbols-outlined {
+      font-family: 'Material Symbols Outlined', 'Segoe UI Symbol', 'Noto Color Emoji', sans-serif;
+      font-variation-settings:
+        'FILL' 0,
+        'wght' 400,
+        'GRAD' 0,
+        'opsz' 24
+    }
+
+    /* Sidebar icons: clearer and higher contrast */
+    nav .material-symbols-outlined {
+      color: inherit !important;
+      /* allow per-icon color */
+      font-variation-settings: 'FILL' 1, 'wght' 700, 'GRAD' 0, 'opsz' 30 !important;
+      font-size: 30px !important;
+      transition: transform 0.15s ease, filter 0.15s ease;
+    }
+
+    /* Colored accents for sidebar icons */
+    nav #notifications-btn .material-symbols-outlined {
+      color: #f87171 !important;
+    }
+
+    nav #sync-btn .material-symbols-outlined {
+      color: #60a5fa !important;
+    }
+
+    nav #settings-btn .material-symbols-outlined {
+      color: #fbbf24 !important;
+    }
+
+    /* Colored accents for mobile header icons */
+    #notifications-btn-mobile .material-symbols-outlined {
+      color: #f87171 !important;
+    }
+
+    #sync-btn-mobile .material-symbols-outlined {
+      color: #60a5fa !important;
+    }
+
+    #settings-btn-mobile .material-symbols-outlined {
+      color: #fbbf24 !important;
+    }
+
+    nav button:hover .material-symbols-outlined {
+      filter: none;
+      transform: none;
+    }
+
+    .md-elevation-1 {
+      box-shadow: none;
+    }
+
+    .md-elevation-2 {
+      box-shadow: 0px 1px 2px 0px rgba(0, 0, 0, 0.3), 0px 2px 6px 2px rgba(0, 0, 0, 0.15);
+    }
+
+    .md-elevation-3 {
+      box-shadow: 0px 1px 3px 0px rgba(0, 0, 0, 0.3), 0px 4px 8px 3px rgba(0, 0, 0, 0.15);
+    }
+
+    .menu-card {
+      min-height: 120px;
+      transition: background 0.15s ease, border-color 0.15s ease;
+    }
+
+    .menu-card:hover {
+      background: #475569 !important;
+      /* لون غامق جداً */
+      border-color: #64748b !important;
+      transform: none;
+      box-shadow: none !important;
+    }
+
+    .menu-card:focus-visible,
+    .menu-card:active {
+      background: #475569 !important;
+      border-color: #64748b !important;
+    }
+
+    /* Keep text and icons readable on hover */
+    .menu-card:hover h3,
+    .menu-card:hover p,
+    .menu-card:hover .text-xs,
+    .menu-card:hover .text-sm {
+      color: #ffffff !important;
+    }
+
+    /* وضوح الأيقونة عند الوقوف بالماوس */
+    .menu-card:hover .material-symbols-outlined {
+      color: #ffffff !important;
+      filter: none;
+    }
+
+    /* تغيير خلفية الأيقونة عند الوقوف بالماوس لتناسب الخلفية الغامقة */
+    .menu-card:hover .menu-icon-bg {
+      background-color: rgba(255, 255, 255, 0.15) !important;
+      border: 1px solid rgba(255, 255, 255, 0.3);
+    }
+
+    .menu-card:focus-visible h3,
+    .menu-card:focus-visible p,
+    .menu-card:focus-visible .text-xs,
+    .menu-card:focus-visible .text-sm,
+    .menu-card:active h3,
+    .menu-card:active p,
+    .menu-card:active .text-xs,
+    .menu-card:active .text-sm,
+    .menu-card:active .material-symbols-outlined {
+      color: #ffffff !important;
+    }
+
+    /* Slightly brighten icons on hover without changing their color explicitly */
+    .menu-card:hover .material-symbols-outlined {
+      filter: none;
+    }
+
+    .stats-card {
+      background: rgba(255, 255, 255, 0.95);
+    }
+
+    .office-name-card {
+      grid-column: span 2;
+    }
+
+    /* تحسين التسميات في شاشة الكمبيوتر */
+    @media (min-width: 768px) {
+      main {
+        background-color: #0f172a !important;
+        /* خلفية كحلي غامق للنافذة */
+        min-height: unset;
+      }
+
+      nav .text-xs {
+        font-size: 12px !important;
+        line-height: 1.35 !important;
+        margin-top: 4px !important;
+        color: rgba(255, 255, 255, 0.92) !important;
+        font-weight: 600 !important;
+      }
+
+      nav .flex.items-center.justify-center {
+        gap: 1rem !important;
+      }
+
+      nav .flex.flex-col.items-center {
+        min-width: 60px !important;
+      }
+    }
+
+    @media (max-width: 768px) {
+      .office-name-card {
+        grid-column: span 2;
+      }
+
+      body {
+        background: linear-gradient(135deg, #123a7a 0%, #1b4b9a 100%) !important;
+      }
+
+      nav {
+        display: none !important;
+      }
+
+      main {
+        padding: 0.25rem !important;
+        padding-top: 0 !important;
+      }
+
+      /* على الهاتف: شبكة 3 أعمدة للعناصر بعد الزرين الكبار */
+      #menu-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+        gap: 0.25rem !important;
+      }
+    }
+
+    @media (max-width: 640px) {
+      #menu-grid {
+        grid-template-columns: repeat(3, 1fr) !important;
+      }
+
+      main {
+        padding: 0.2rem !important;
+        padding-top: 0 !important;
+      }
+
+      /* تحسين شريط الأزرار العلوي على الهاتف */
+      .md\:hidden header .bg-white {
+        margin-bottom: 8px !important;
+      }
+
+      #mobile-top-actions {
+        padding: 8px !important;
+        border-radius: 14px !important;
+      }
+
+      .md\:hidden header .flex.items-center.justify-center {
+        gap: 1.5rem !important;
+      }
+
+      .md\:hidden header button {
+        min-width: 62px !important;
+        padding: 6px 8px !important;
+      }
+
+      .md\:hidden header .text-xs {
+        font-size: 10px !important;
+        line-height: 1.1 !important;
+        color: #334155 !important;
+        font-weight: 600 !important;
+      }
+
+      /* تقليل ارتفاع قسم الإحصائيات وإضافة مسافة تحته */
+      #mobile-stats {
+        padding: 8px !important;
+        border-radius: 16px !important;
+        margin-bottom: 10px !important;
+      }
+
+      #mobile-stats .grid {
+        gap: 6px !important;
+      }
+
+      #mobile-stats .rounded-xl {
+        padding: 6px !important;
+      }
+
+      #mobile-stats .text-lg {
+        font-size: 0.85rem !important;
+        line-height: 1.1 !important;
+      }
+
+      #mobile-stats .text-\[10px\] {
+        font-size: 6px !important;
+      }
+
+      /* إجبار (جلسات الغد) و(أعمال الغد) على سطر واحد بحجم متناسق */
+      #mobile-stats .grid>div:nth-child(3) .text-\[10px\],
+      #mobile-stats .grid>div:nth-child(4) .text-\[10px\] {
+        white-space: nowrap;
+        font-size: 12px !important;
+        letter-spacing: 0 !important;
+        font-weight: 700 !important;
+      }
+
+      /* تصغير النصوص والأيقونات داخل الكروت على الهاتف */
+      .menu-card h3 {
+        font-size: 0.95rem;
+      }
+
+      .menu-card p {
+        font-size: 0.8rem;
+      }
+
+      .menu-card .material-symbols-outlined {
+        font-size: 20px !important;
+      }
+
+      /* تكبير أزرار الشريط العلوى للموبايل بدون زيادة ارتفاع الشريط */
+      #mobile-top-actions .material-symbols-outlined {
+        font-size: 28px !important;
+        line-height: 1 !important;
+      }
+
+      /* تلوين أزرار الشريط العلوى (بدون مربعات) */
+      #notifications-btn-mobile {
+        background: transparent !important;
+      }
+
+      #sync-btn-mobile {
+        background: transparent !important;
+      }
+
+      #settings-btn-mobile {
+        background: transparent !important;
+      }
+
+      #mobile-top-actions button {
+        border: none !important;
+      }
+
+      /* تلوين الأيقونات نفسها زي الكمبيوتر */
+      #notifications-btn-mobile .material-symbols-outlined {
+        color: #f87171 !important;
+      }
+
+      #sync-btn-mobile .material-symbols-outlined {
+        color: #60a5fa !important;
+      }
+
+      #settings-btn-mobile .material-symbols-outlined {
+        color: #fbbf24 !important;
+      }
+
+      /* مربعات مربعة على الهاتف */
+      .menu-card {
+        border-radius: 20px !important;
+        box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06) !important;
+        aspect-ratio: 1 / 1;
+        /* يجعل الكارت مربع */
+        min-height: auto !important;
+        /* إلغاء الارتفاعات الكبيرة */
+        padding: 14px !important;
+        /* هوامش أقل لتناسب المربع */
+      }
+
+      .menu-card:hover {
+        transform: none !important;
+      }
+
+      /* أول زرين يبقيان بحجم أكبر قليلاً ولكن مربّعين أيضاً */
+      #menu-grid>.col-span-full>.menu-card {
+        aspect-ratio: 1 / 1;
+      }
+    }
+
+    /* Mobile stats: single-line, readable labels + spacing */
+    @media (max-width: 640px) {
+      #mobile-stats {
+        padding: 6px !important;
+        border-radius: 12px !important;
+        margin-bottom: 24px !important;
+      }
+
+      #mobile-stats .grid {
+        gap: 4px !important;
+      }
+
+      #mobile-stats .grid>div {
+        min-width: 0 !important;
+      }
+
+      #mobile-stats .rounded-xl {
+        padding: 4px !important;
+        border-radius: 10px !important;
+      }
+
+      #mobile-stats .text-lg {
+        font-size: 1.2rem !important;
+        line-height: 1.1 !important;
+      }
+
+      #mobile-stats .grid>div>.font-semibold {
+        display: block !important;
+        width: 100% !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        /* keep ellipsis on long labels */
+        text-overflow: ellipsis !important;
+        font-size: 12px !important;
+        line-height: 1.25 !important;
+        /* allow dots/diacritics below baseline */
+        letter-spacing: 0 !important;
+        padding-bottom: 2px !important;
+        /* add slight space under text */
+      }
+    }
+
+    /* Mobile home: office name + stats cards palette (no layout changes) */
+    @media (max-width: 768px) {
+      #mobile-top-actions {
+        background: linear-gradient(180deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      }
+
+      #notifications-btn-mobile .material-symbols-outlined {
+        color: #f87171 !important;
+      }
+
+      #sync-btn-mobile .material-symbols-outlined {
+        color: #60a5fa !important;
+      }
+
+      #settings-btn-mobile .material-symbols-outlined {
+        color: #fbbf24 !important;
+      }
+
+      #mobile-top-actions .text-xs {
+        color: rgba(255, 255, 255, 0.92) !important;
+      }
+
+      #mobile-stats {
+        background: linear-gradient(135deg, #123a7a 0%, #1b4b9a 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.10) !important;
+      }
+
+      #mobile-office-card {
+        margin-bottom: 0 !important;
+      }
+
+      #mobile-office-card span,
+      #mobile-office-name-card {
+        color: #ffffff !important;
+      }
+
+      #mobile-stats .rounded-xl {
+        background: rgba(255, 255, 255, 0.92) !important;
+        border: 1px solid rgba(15, 23, 42, 0.10) !important;
+      }
+
+      /* ألوان مربعات الإحصائيات الأربعة (الموكلين/القضايا/جلسات الغد/أعمال الغد) */
+      #mobile-stats .grid>div {
+        background: linear-gradient(135deg, #154186 0%, #2156ad 100%) !important;
+        color: #ffffff !important;
+      }
+
+      #mobile-stats .grid>div * {
+        color: #ffffff !important;
+      }
+    }
+
+    @media (max-width: 360px) {
+
+      /* تحسين شريط الأزرار على الشاشات الصغيرة جداً */
+      .md\:hidden header .flex.items-center.justify-center {
+        gap: 1rem !important;
+      }
+
+      .md\:hidden header button {
+        min-width: 45px !important;
+      }
+
+      .md\:hidden header .text-xs {
+        font-size: 10px !important;
+      }
+
+      .md\:hidden header .material-symbols-outlined {
+        font-size: 20px !important;
+      }
+
+      #mobile-stats .text-lg {
+        font-size: 1.1rem !important;
+      }
+
+      #mobile-stats .grid {
+        gap: 3px !important;
+        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+      }
+
+      #mobile-stats .rounded-xl {
+        padding: 3px !important;
+      }
+
+      #mobile-stats .grid>div>.font-semibold {
+        font-size: 11px !important;
+      }
+    }
+
+    nav {
+      background: #0f172a !important;
+      /* نفس لون خلفية النافذة */
+      color: #0f172a !important;
+      border: none !important;
+      /* شلنا الحدود الخضراء */
+    }
+
+    nav .nav-scroll-area {
+      overflow-y: auto;
+      overflow-x: hidden;
+      height: 100%;
+      scrollbar-width: none;
+      -ms-overflow-style: none;
+    }
+
+    nav .nav-scroll-area::-webkit-scrollbar {
+      display: none;
+    }
+
+    main {
+      background-color: transparent !important;
+    }
+
+    @media (min-width: 769px) {
+      main {
+        background: linear-gradient(180deg, #e0f7fa 0%, #b2ebf2 100%) !important;
+      }
+    }
+
+    nav #notifications-btn:hover {
+      background-color: rgba(248, 113, 113, 0.40) !important;
+      color: #ffffff !important;
+    }
+
+    nav #sync-btn:hover {
+      background-color: rgba(96, 165, 250, 0.40) !important;
+      color: #ffffff !important;
+    }
+
+    nav #settings-btn:hover {
+      background-color: rgba(251, 191, 36, 0.40) !important;
+      color: #ffffff !important;
+    }
+
+    nav .material-symbols-outlined[style*="schedule"] {
+      color: #ffffff !important;
+    }
+
+    .md\:hidden header button:hover {
+      background-color: #1e293b !important;
+      color: #ffffff !important;
+    }
+
+    nav .p-4.rounded-xl.md-elevation-1 {
+      background: linear-gradient(0deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    nav .p-3.rounded-xl.shadow-sm {
+      background: linear-gradient(0deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    nav .p-3.rounded-xl {
+      background: linear-gradient(0deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%) !important;
+      border-color: rgba(255, 255, 255, 0.12) !important;
+    }
+
+    nav .p-3.rounded-lg {
+      border: 1px solid rgba(15, 23, 42, 0.14) !important;
+    }
+
+    .p-4.rounded-xl.md-elevation-1 {
+      background-color: #ffffff !important;
+      border: 1px solid #e5e7eb !important;
+    }
+
+    .p-3.rounded-xl.shadow-sm {
+      background-color: #ffffff !important;
+      border: 1px solid #e5e7eb !important;
+    }
+
+    .p-3.rounded-xl {
+      background-color: #ffffff !important;
+    }
+
+    .p-3.rounded-lg {
+      background-color: #f8fafc !important;
+      border: 1px solid #e5e7eb !important;
+    }
+
+    .p-2.rounded-xl {
+      background-color: #f8fafc !important;
+      border: 1px solid #e5e7eb !important;
+    }
+
+    [style*="color: #e5e7eb"] {
+      color: #0f172a !important;
+    }
+
+    [style*="color: #f3f4f6"] {
+      color: #0b1324 !important;
+    }
+
+    [style*="#4b5563"] {
+      background-color: #ffffff !important;
+      border-color: #e5e7eb !important;
+    }
+
+    [style*="#374151"] {
+      background-color: #ffffff !important;
+      border-color: #e5e7eb !important;
+    }
+
+    [style*="#1f2937"] {
+      background-color: #f8fafc !important;
+      border-color: #e5e7eb !important;
+    }
+
+    @media (min-width: 769px) {
+      nav .menu-card {
+        background: linear-gradient(180deg, #d1fae5 0%, #a7f3d0 100%) !important;
+        border: 1px solid #7dd3b0 !important;
+      }
+
+      nav .menu-card h3,
+      nav .menu-card p,
+      nav .menu-card .text-xs,
+      nav .menu-card .text-sm {
+        color: #0f172a !important;
+      }
+
+      #desktop-stats-grid .desktop-stat-card {
+        background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;
+        border: 1px solid rgba(255, 255, 255, 0.16) !important;
+        box-shadow: 0 8px 22px rgba(15, 23, 42, 0.12) !important;
+      }
+
+      #desktop-stats-grid .desktop-stat-card * {
+        color: #ffffff !important;
+      }
+
+      main {
+        display: flex !important;
+        flex-direction: column !important;
+        overflow: hidden !important;
+        min-height: unset !important;
+      }
+
+      #menu-grid {
+        flex: 1 !important;
+        min-height: 0 !important;
+        grid-auto-rows: 1fr !important;
+        align-content: stretch !important;
+      }
+
+      #menu-grid .menu-card {
+        min-height: 0 !important;
+        height: 100% !important;
+      }
+
+      #first-row {
+        height: 100% !important;
+      }
+
+      #first-row .menu-card {
+        min-height: 0 !important;
+        height: 100% !important;
+      }
+    }
+
+    #client-count,
+    #lawsuit-count,
+    #tomorrow-sessions-count,
+    #tomorrow-administrative-count,
+    #client-count-mobile,
+    #lawsuit-count-mobile,
+    #tomorrow-sessions-count-mobile,
+    #tomorrow-administrative-count-mobile {
+      color: #0b1324 !important;
+    }
+
+    #office-name-card,
+    #mobile-office-name-card,
+    #current-date-line,
+    #current-time {
+      color: #ffffff !important;
+    }
+  </style>
+</head>
+
+<body>
+
+  <div class="flex h-screen">
+    <nav class="w-20 md:w-80 md-elevation-1 rounded-2xl my-2 overflow-hidden"
+      style="background: linear-gradient(0deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%);">
+      <div class="nav-scroll-area">
+        <div class="px-4 pt-3 pb-4 md:px-6 md:pt-4 md:pb-6">
+
+          <div class="mb-3">
+            <div class="flex items-center justify-center mb-2">
+
+              <div class="rounded-xl p-3 md-elevation-1"
+                style="background: linear-gradient(0deg, #07122a 0%, #0b1b3a 55%, #0f2a57 100%) !important;">
+                <div class="flex items-center justify-center gap-3">
+                  <div class="relative">
+                    <button id="notifications-btn"
+                      class="relative w-12 h-12 rounded-lg flex items-center justify-center hover:bg-gray-600 transition-colors"
+                      style="color:#e5e7eb;">
+                      <span class="material-symbols-outlined text-2xl">notifications</span>
+                    </button>
+                    <div class="text-xs text-center mt-1 text-white font-medium">الإشعارات</div>
+                  </div>
+                  <div class="flex flex-col items-center">
+                    <button id="sync-btn"
+                      class="w-12 h-12 rounded-lg flex items-center justify-center hover:bg-gray-600 transition-colors"
+                      style="color:#e5e7eb;"
+                      onclick="if(typeof handleSyncNow === 'function') handleSyncNow(); else console.log('Sync function not available');">
+                      <span class="material-symbols-outlined text-2xl">sync</span>
+                    </button>
+                    <div class="text-xs text-center mt-1 text-white font-medium">المزامنة</div>
+                  </div>
+                  <div class="flex flex-col items-center">
+                    <button id="settings-btn"
+                      class="w-12 h-12 rounded-lg flex items-center justify-center hover:bg-gray-600 transition-colors"
+                      style="color:#e5e7eb;" onclick="handleCardClick('settings')">
+                      <span class="material-symbols-outlined text-2xl">settings</span>
+                    </button>
+                    <div class="text-xs text-center mt-1 text-white font-medium">الإعدادات</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="md:hidden flex justify-center">
+              <div class="w-12 h-12 rounded-full flex items-center justify-center"
+                style="background-color: var(--md-sys-color-primary);">
+                <span class="material-symbols-outlined text-white">business</span>
+              </div>
+            </div>
+          </div>
+
+
+          <div class="hidden md:block space-y-4">
+
+            <div class="p-4 rounded-xl md-elevation-1"
+              style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+              <div class="text-center mb-2">
+                <span class="material-symbols-outlined mr-1"
+                  style="color: #ffffff !important; font-size: 18px; vertical-align: middle;">person</span>
+                <span class="font-semibold text-base"
+                  style="color: #ffffff !important; vertical-align: middle;">مرحباً</span>
+              </div>
+              <div class="text-xl font-bold text-center py-2" style="color: #ffffff !important;" id="office-name-card">—
+              </div>
+            </div>
+
+
+            <div class="p-4 rounded-xl md-elevation-1"
+              style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+              <div class="text-center mb-3">
+                <span class="material-symbols-outlined mr-1"
+                  style="color: #ffffff !important; font-size: 20px; vertical-align: middle;">access_time</span>
+                <span class="font-semibold text-lg"
+                  style="color: #ffffff !important; vertical-align: middle;">الآن</span>
+              </div>
+              <div class="text-sm text-center mb-2" style="color: #ffffff !important;" id="current-date-line">—</div>
+              <div class="text-xl font-bold text-center py-1" style="color: #ffffff !important;" id="current-time">—
+              </div>
+              <div class="mt-2 text-center text-xs" style="color: rgba(255,255,255,0.88) !important;">
+                <span id="sidebar-version-label">الإصدار: —</span>
+              </div>
+            </div>
+
+            <div class="p-4 rounded-xl md-elevation-1"
+              style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+              <div class="text-center mb-3">
+                <span class="material-symbols-outlined mr-1"
+                  style="color: #ffffff !important; font-size: 20px; vertical-align: middle;">bar_chart</span>
+                <span class="font-semibold text-base"
+                  style="color: #ffffff !important; vertical-align: middle;">إحصائيات</span>
+              </div>
+              <div id="desktop-stats-grid" class="grid grid-cols-2 gap-3">
+
+
+                <div class="p-3 rounded-lg desktop-stat-card"
+                  style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+                  <div class="text-center">
+                    <div class="text-sm font-semibold mb-1" style="color: #ffffff !important;">الموكلين</div>
+                    <div class="text-2xl font-bold" style="color: #ffffff !important;" id="client-count">0</div>
+                  </div>
+                </div>
+
+
+                <div class="p-3 rounded-lg desktop-stat-card"
+                  style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+                  <div class="text-center">
+                    <div class="text-sm font-semibold mb-1" style="color: #ffffff !important;">القضايا</div>
+                    <div class="text-2xl font-bold" style="color: #ffffff !important;" id="lawsuit-count">0</div>
+                  </div>
+                </div>
+
+
+                <div class="p-3 rounded-lg desktop-stat-card"
+                  style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+                  <div class="text-center">
+                    <div class="text-sm font-semibold mb-1" style="color: #ffffff !important;">جلسات الغد</div>
+                    <div class="text-2xl font-bold" style="color: #ffffff !important;" id="tomorrow-sessions-count">0
+                    </div>
+                  </div>
+                </div>
+
+
+                <div class="p-3 rounded-lg desktop-stat-card"
+                  style="background: linear-gradient(135deg, #1e40af 0%, #0b1b3a 60%, #111827 100%) !important;">
+                  <div class="text-center">
+                    <div class="text-sm font-semibold mb-1" style="color: #ffffff !important;">أعمال الغد</div>
+                    <div class="text-2xl font-bold" style="color: #ffffff !important;"
+                      id="tomorrow-administrative-count">0</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+
+          </div>
+        </div>
+      </div>
+    </nav>
+
+
+    <main class="flex-1 px-6 py-6 md:px-6 md:py-2 overflow-y-auto">
+
+      <div class="md:hidden">
+        <header class="mb-1">
+
+          <div id="mobile-top-actions" class="rounded-xl p-3 shadow-sm" style="background-color:#4b5563;">
+            <div class="flex items-center justify-center gap-6">
+              <button id="notifications-btn-mobile"
+                class="flex flex-col items-center gap-1 hover:bg-gray-700 rounded-lg p-2 transition-colors">
+                <div class="relative">
+                  <span class="material-symbols-outlined text-2xl" style="color:#e5e7eb;">notifications</span>
+                  <span id="notifications-badge-mobile"
+                    style="display:none; position:absolute; top:-2px; right:-2px; background-color:#ef4444; color:#fff; border-radius:9999px; padding:0 4px; font-size:9px; line-height:14px; min-width:14px; text-align:center;"></span>
+                </div>
+                <span class="text-xs font-medium text-gray-200">الإشعارات</span>
+              </button>
+              <button id="sync-btn-mobile"
+                class="flex flex-col items-center gap-1 hover:bg-gray-700 rounded-lg p-2 transition-colors"
+                onclick="if(typeof handleSyncNow === 'function') handleSyncNow(); else console.log('Sync function not available');">
+                <span class="material-symbols-outlined text-2xl" style="color:#e5e7eb;">sync</span>
+                <span class="text-xs font-medium text-gray-200">المزامنة</span>
+              </button>
+              <button id="settings-btn-mobile"
+                class="flex flex-col items-center gap-1 hover:bg-gray-700 rounded-lg p-2 transition-colors"
+                onclick="handleCardClick('settings')">
+                <span class="material-symbols-outlined text-2xl" style="color:#e5e7eb;">settings</span>
+                <span class="text-xs font-medium text-gray-200">الإعدادات</span>
+              </button>
+            </div>
+          </div>
+        </header>
+
+
+        <div id="mobile-stats" class="rounded-2xl p-3 shadow-sm" style="background-color:#0b1b3a;">
+          <div id="mobile-office-card" class="pb-2 mb-2" style="border-bottom: 1px solid rgba(255,255,255,0.12);">
+            <div class="flex items-center justify-center gap-2">
+              <span class="font-semibold text-sm" style="color: #e5e7eb;">مرحباً</span>
+              <span class="font-semibold text-sm" style="color: #f3f4f6;" id="mobile-office-name-card">—</span>
+            </div>
+          </div>
+          <div class="grid grid-cols-4 gap-2">
+            <div class="rounded-xl p-2 text-center" style="background: #0f2a57;">
+              <div class="text-lg font-bold" style="color: #f3f4f6;" id="client-count-mobile">0</div>
+              <div class="text-[10px] font-semibold mt-1" style="color: #e5e7eb;">الموكلين</div>
+            </div>
+            <div class="rounded-xl p-2 text-center" style="background: #0f2a57;">
+              <div class="text-lg font-bold" style="color: #f3f4f6;" id="lawsuit-count-mobile">0</div>
+              <div class="text-[10px] font-semibold mt-1" style="color: #e5e7eb;">القضايا</div>
+            </div>
+            <div class="rounded-xl p-2 text-center" style="background: #0f2a57;">
+              <div class="text-lg font-bold" style="color: #f3f4f6;" id="tomorrow-sessions-count-mobile">0</div>
+              <div class="text-[10px] font-semibold mt-1" style="color: #e5e7eb;">جلسات الغد</div>
+            </div>
+            <div class="rounded-xl p-2 text-center" style="background: #0f2a57;">
+              <div class="text-lg font-bold" style="color: #f3f4f6;" id="tomorrow-administrative-count-mobile">0</div>
+              <div class="text-[10px] font-semibold mt-1" style="color: #e5e7eb;">أعمال الغد</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+
+      <div id="menu-grid" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-3 xl:grid-cols-3 gap-4"></div>
+    </main>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <!-- AI Chat FAB + Floating Panel -->
+  <div id="sync-progress-container"
+    class="hidden fixed top-20 left-1/2 transform -translate-x-1/2 z-50 bg-white rounded-xl shadow-2xl border border-blue-200 p-4 w-11/12 max-w-md">
+    <div class="flex items-center justify-between mb-3">
+      <span id="sync-progress-text" class="text-sm font-semibold text-blue-800">جاري التحضير...</span>
+      <span id="sync-progress-percent" class="text-xs text-blue-600 font-bold">0%</span>
+    </div>
+    <div class="w-full bg-blue-100 rounded-full h-2 mb-2">
+      <div id="sync-progress-bar" class="bg-blue-600 h-2 rounded-full transition-all duration-300" style="width: 0%">
+      </div>
+    </div>
+    <div id="sync-step-info" class="text-xs text-blue-600 text-center">إعداد المزامنة...</div>
+  </div>
+
+
+  <div id="notifications-modal" class="fixed inset-0 bg-black/40 hidden z-[100] flex items-center justify-center">
+    <div class="bg-white w-[92%] max-w-md rounded-2xl shadow-xl border border-gray-200 overflow-hidden">
+      <div class="p-3 border-b border-gray-100 flex items-center justify-between">
+        <span class="text-sm font-bold">الإشعارات</span>
+        <div class="flex items-center gap-2">
+          <button id="notifications-modal-toggle-mute-btn"
+            class="text-xs px-2 py-1 rounded-full border border-gray-300 hover:bg-gray-50">كتم</button>
+          <button id="notifications-modal-close"
+            class="w-8 h-8 rounded-full flex items-center justify-center hover:bg-gray-100">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+      </div>
+      <div id="notifications-modal-list" class="max-h-80 overflow-auto p-3 text-sm">
+        <div class="text-gray-500 text-center py-8">لا توجد إشعارات</div>
+      </div>
+      <div class="p-2 border-t border-gray-100">
+        <button id="notifications-modal-view-btn"
+          class="w-full text-center text-blue-700 hover:text-blue-900 text-sm font-bold py-1">عرض الإشعارات</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/trial.js"></script>
+  <script src="js/toast.js"></script>
+
+  <script src="js/notifications-portal.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/updater.js"></script>
+  <script src="js/settings.js"></script>
+  <script src="js/quick-sync.js"></script>
+  <script src="js/qr-scanner.js"></script>
+  <script src="js/main.js"></script>
+</body>
+
+</html>

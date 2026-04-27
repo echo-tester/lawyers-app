@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>تعديل الجلسة</title>
+
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/search-responsive.css?v=3" />
+  <style>
+    .low-power *,
+    .low-power *::before,
+    .low-power *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      backdrop-filter: none !important;
+    }
+  </style>
+</head>
+
+<body class="h-screen flex flex-col low-power overflow-hidden session-edit-page" data-standalone="true"
+  style="background: linear-gradient(135deg, #334155, #111827, #1e3a8a);">
+
+  <header class="fixed top-0 left-0 right-0 z-40 px-2 py-1 bg-blue-900 border-b border-blue-900">
+    <div class="grid grid-cols-3 items-center">
+
+      <div class="justify-self-start">
+        <button id="back-to-sessions"
+          class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+          <i class="ri-arrow-right-line text-white text-base"></i>
+          <span class="text-white">رجوع</span>
+        </button>
+      </div>
+
+
+      <div class="justify-self-center">
+        <button id="copyable-title"
+          class="inline-flex items-center gap-1 px-3 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold"
+          title="اضغط للنسخ">
+          <i class="ri-edit-line text-white text-base"></i>
+          <span class="text-sm font-semibold text-white" id="page-title">تعديل الجلسة</span>
+        </button>
+      </div>
+
+
+      <div class="justify-self-end"></div>
+    </div>
+  </header>
+
+
+  <main class="flex-1 p-0" style="margin-top: 48px; height: calc(100vh - 48px); overflow:hidden;">
+    <div class="w-full h-full" style="overflow:hidden;">
+      <div class="border-0 bg-white min-h-full">
+
+        <div id="modal-container" class="bg-white rounded-lg w-full">
+
+          <div id="modal-content" class="px-0 sm:px-4 pb-4 text-gray-900"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/safe-confirm.js"></script>
+  <script src="js/date-picker.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/header.js"></script>
+  <script>
+    function __getSessionEditBackUrl() {
+      try {
+        const goBackTo = sessionStorage.getItem('returnToPage') || '';
+        const clientId = parseInt(sessionStorage.getItem('returnToClientId') || '0', 10);
+        let caseId = 0;
+        try {
+          caseId = parseInt((sessionStorage.getItem('currentCaseId') || (stateManager && stateManager.currentCaseId) || '0'), 10);
+        } catch (_) { caseId = 0; }
+
+        if (goBackTo === 'new') {
+          try {
+            sessionStorage.removeItem('returnToPage');
+            // رجوع من إدخال الجلسة -> افتح خطوة بيانات القضية مباشرة بدل شاشة الأطراف
+            sessionStorage.setItem('new_open_case_details', '1');
+            if (caseId) sessionStorage.setItem('new_open_case_id', String(caseId));
+          } catch (_) {}
+          return 'new.html';
+        }
+
+        if ((goBackTo === 'search' || goBackTo === 'clientView') && clientId) {
+          try {
+            sessionStorage.removeItem('returnToPage');
+            sessionStorage.removeItem('returnToClientId');
+            sessionStorage.setItem('openClientDetailsOnSearch', String(clientId));
+          } catch (_) {}
+          return 'search.html';
+        }
+      } catch (_) {}
+      return 'sessions.html';
+    }
+
+    // Provide a safe navigateBack for this standalone page to avoid errors after saving
+    window.navigateBack = function () {
+      window.location.href = __getSessionEditBackUrl();
+    };
+  </script>
+  <script src="js/sessions.js"></script>
+  <script>
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Initialize modal history for standalone page
+      if (stateManager && stateManager.modalHistory && stateManager.modalHistory.length === 0) {
+        stateManager.pushToModalHistory({ func: () => { }, args: [] });
+      }
+
+      // Back button
+      document.getElementById('back-to-sessions')?.addEventListener('click', () => {
+        window.location.href = __getSessionEditBackUrl();
+      });
+
+      try {
+        await initDB();
+      } catch (e) {
+        console.error('Error initializing DB:', e);
+      }
+
+      const sessionIdStr = getQueryParam('sessionId');
+
+      // Get session data and case ID
+      let sessionData = null;
+      let sessionId = null;
+
+      if (sessionIdStr) {
+        sessionId = parseInt(sessionIdStr, 10);
+        try {
+          sessionData = await getById('sessions', sessionId);
+        } catch (e) {
+          console.error('Error getting session:', e);
+        }
+      }
+
+      // Set the case ID in state manager
+      if (sessionData && sessionData.caseId) {
+        stateManager.currentCaseId = sessionData.caseId;
+      } else {
+        // If no session ID provided, check if we have a case ID in the URL
+        const caseIdStr = getQueryParam('caseId');
+        if (caseIdStr) {
+          stateManager.currentCaseId = parseInt(caseIdStr, 10);
+        }
+      }
+
+      // If no case ID found, show error
+      if (!stateManager.currentCaseId) {
+        const container = document.getElementById('modal-content');
+        container.innerHTML = '<div class="p-8 text-center text-red-600">لا يوجد معرّف قضية. يرجى تحديد قضية أولاً.</div>';
+        return;
+      }
+
+      // Enable sidebar mode for session-edit.html
+      window.STAY_ON_SAVE = true;
+
+      // Render the session form with sidebar enabled
+      if (typeof displaySessionForm === 'function') {
+        try {
+          await displaySessionForm(sessionId, sessionData);
+          // Override title after form injection with a small delay to ensure DOM is ready
+          setTimeout(() => {
+            const pageHeaderTitle = document.getElementById('page-title');
+            if (pageHeaderTitle) {
+              if (sessionId) {
+                pageHeaderTitle.textContent = 'تعديل الجلسة';
+              } else {
+                pageHeaderTitle.textContent = 'إضافة جلسة جديدة';
+              }
+            }
+          }, 100);
+        } catch (e) {
+          console.error('Error displaying session form:', e);
+          const container = document.getElementById('modal-content');
+          container.innerHTML = '<div class="p-8 text-center text-red-600">حدث خطأ أثناء تحميل النموذج.</div>';
+        }
+      } else {
+        const container = document.getElementById('modal-content');
+        container.innerHTML = '<div class="p-8 text-center text-red-600">تعذّر تحميل نموذج تعديل الجلسة.</div>';
+      }
+    });
+  </script>
+</body>
+
+</html>

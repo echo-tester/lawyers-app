@@ -1,0 +1,832 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>الإعدادات</title>
+
+
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <style>
+    .low-power *,
+    .low-power *::before,
+    .low-power *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+    }
+
+    /* تحسين وضوح حقول الإدخال في نافذة الإعدادات */
+    #modal-content input[type="text"],
+    #modal-content input[type="password"],
+    #modal-content select,
+    #modal-content textarea,
+    #modal-popup-content input[type="text"],
+    #modal-popup-content input[type="password"],
+    #modal-popup-content select,
+    #modal-popup-content textarea {
+      background-color: #f8fafc;
+      /* خلفية فاتحة لزيادة التباين */
+      border: 2px solid #94a3b8;
+      /* حدود أوضح */
+      color: #111827;
+      /* نص داكن وواضح */
+      font-size: 0.95rem !important;
+      /* تكبير حجم الخط */
+      padding: 0.65rem 0.9rem;
+      /* مساحة داخلية مريحة */
+      border-radius: 0.5rem;
+      /* زوايا ناعمة */
+      min-height: 46px !important;
+    }
+
+    /* موبايل فقط: تأكيد نفس الستايل لكل أنواع المدخلات الشائعة وليس النص فقط */
+    @media (max-width: 768px) {
+
+      #modal-content input[type="email"],
+      #modal-content input[type="number"],
+      #modal-content input[type="tel"],
+      #modal-content input[type="url"],
+      #modal-content input[type="date"],
+      #modal-content input[type="time"],
+      #modal-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      #modal-content select,
+      #modal-content textarea,
+      #modal-popup-content input[type="email"],
+      #modal-popup-content input[type="number"],
+      #modal-popup-content input[type="tel"],
+      #modal-popup-content input[type="url"],
+      #modal-popup-content input[type="date"],
+      #modal-popup-content input[type="time"],
+      #modal-popup-content input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="file"]),
+      #modal-popup-content select,
+      #modal-popup-content textarea {
+        background-color: #f8fafc !important;
+        border: 2px solid #64748b !important;
+        color: #111827 !important;
+        font-size: 0.9rem !important;
+        padding: 0.6rem 0.9rem !important;
+        border-radius: 0.5rem !important;
+        min-height: 48px !important;
+        -webkit-appearance: none;
+        appearance: none;
+      }
+
+      #modal-content input:focus,
+      #modal-content select:focus,
+      #modal-content textarea:focus,
+      #modal-popup-content input:focus,
+      #modal-popup-content select:focus,
+      #modal-popup-content textarea:focus {
+        border-color: #2563eb !important;
+        box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22) !important;
+        background-color: #ffffff !important;
+        outline: none !important;
+      }
+    }
+
+    /* Electron (Desktop) فقط: إخفاء تسميات "بيانات المكتب" فوق حقول النص مع بقاءها في عرض الموبايل */
+    @media (min-width: 769px) {
+      html.is-electron .office-profile-label {
+        display: none !important;
+      }
+    }
+
+    #modal-content input::placeholder,
+    #modal-popup-content input::placeholder,
+    #modal-content textarea::placeholder,
+    #modal-popup-content textarea::placeholder {
+      color: #6b7280;
+      /* لون عنصر نائب أوضح */
+    }
+
+    #modal-content input:focus,
+    #modal-content select:focus,
+    #modal-content textarea:focus,
+    #modal-popup-content input:focus,
+    #modal-popup-content select:focus,
+    #modal-popup-content textarea:focus {
+      border-color: #2563eb;
+      /* لون تركيز أزرق واضح */
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.22);
+      /* هالة تركيز مرئية */
+      background-color: #ffffff;
+      /* توضيح الخلفية عند التركيز */
+      outline: none;
+    }
+
+    /* توضيح حدود الأزرار وزيادة ارتفاعها */
+    #modal-content button,
+    #modal-popup-content button {
+      border: 2px solid rgba(15, 23, 42, 0.18);
+      min-height: 46px;
+    }
+
+    /* شبكة الكروت في نافذة الإعدادات – تصميم شبكي متناسق وتساوي الارتفاع */
+    #modal-content .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 12px;
+      align-items: stretch;
+    }
+
+    #modal-content .grid>div {
+      display: flex;
+      flex-direction: column;
+      height: 100% !important;
+      min-height: unset;
+      /* ارتفاع موحّد */
+    }
+
+    /* ادفع عناصر الأكشن للأسفل للحفاظ على محاذاة موحّدة */
+    #modal-content .grid>div .space-y-3,
+    #modal-content .grid>div .space-y-4 {
+      margin-top: auto;
+    }
+
+    #modal-content .grid>div>*:last-child {
+      margin-top: auto;
+    }
+
+    /* إخفاء الشرح تحت عنوان الكارت وفي أعلى كل كارت */
+    #modal-content .text-center.mb-4>p {
+      display: none !important;
+    }
+
+    #modal-content .grid>div>p.text-gray-600.text-sm.mb-4.text-center {
+      display: none !important;
+    }
+
+    /* تخصيص كارت الترخيص: شكل مدمج ونضيف */
+    #trial-settings-card {
+      display: flex;
+      flex-direction: column;
+      min-height: 320px;
+    }
+
+    #trial-settings-card .text-center.mb-4 {
+      margin-bottom: 8px;
+    }
+
+    /* أظهر حالة الترخيص كبادج صغيرة بدلاً من فقرة طويلة */
+    #trial-settings-card .text-center.mb-4>p {
+      display: inline-flex !important;
+      align-items: center;
+      gap: 6px;
+      padding: 2px 8px;
+      border-radius: 9999px;
+      font-size: 12px;
+      font-weight: 700;
+      background: #f3f4f6;
+      color: #374151;
+    }
+
+    /* اخفاء تفاصيل الشبكة لتقليل طول الكارت */
+    #trial-settings-card .grid.grid-cols-2 {
+      display: none !important;
+    }
+
+    /* خلي زرار التفعيل تحت */
+    #trial-settings-card .mt-3 {
+      margin-top: auto !important;
+    }
+
+    #trial-settings-card #activation-status {
+      font-size: 11px;
+      opacity: .9;
+    }
+
+    /* تأكيد ظهور الحدود في الهاتف */
+    #modal-content .grid>div {
+      border: 1px solid #e5e7eb !important;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    /* تأكيد ظهور الحدود لكارت الترخيص */
+    #trial-settings-card {
+      border: 1px solid #e5e7eb !important;
+      box-shadow: 0 6px 16px rgba(15, 23, 42, 0.08) !important;
+    }
+
+    /* للهواتف الصغيرة - حدود أكثر وضوحاً ومساحة داخلية أكبر */
+    @media (max-width: 768px) {
+      #modal-content>.max-w-full {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      /* استغلال عرض شاشة الهاتف بالكامل (إلغاء الهوامش/الفراغات الخارجية) */
+      body.settings-page {
+        padding: 0 !important;
+        margin: 0 !important;
+      }
+
+      main {
+        padding: 0 !important;
+        margin: 0 !important;
+        margin-top: calc(2rem + env(safe-area-inset-top)) !important;
+      }
+
+      .container {
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      #settings-content-container,
+      #modal-container,
+      #modal-content,
+      #settings-sections {
+        padding: 0 !important;
+        margin: 0 !important;
+        width: 100% !important;
+        max-width: 100% !important;
+      }
+
+      /* خلي الكروت ممتدة بعرض الشاشة */
+      #modal-content #settings-sections .settings-section>div,
+      #modal-content #settings-sections .bg-white.border {
+        width: 100% !important;
+        max-width: 100% !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        border-radius: 0 !important;
+      }
+
+      #modal-content .grid>div,
+      #trial-settings-card {
+        border: 1px solid #e5e7eb !important;
+        box-shadow: 0 10px 22px rgba(15, 23, 42, 0.10) !important;
+        padding: 12px !important;
+        /* مساحة داخلية أكبر لإبعاد الحدود عن العناصر */
+      }
+
+      #modal-content {
+        overflow-x: hidden !important;
+      }
+
+      #modal-content #settings-sections .bg-white.border>.flex {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 10px !important;
+      }
+
+      #modal-content #settings-sections .bg-white.border>.flex>div:first-child {
+        width: 100% !important;
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        text-align: center !important;
+      }
+
+      #modal-content #settings-sections .bg-white.border>.flex>div:first-child .text-right {
+        text-align: center !important;
+        width: 100% !important;
+      }
+
+      #modal-content #settings-sections .bg-white.border>.flex>div:first-child h3 {
+        margin-bottom: 0 !important;
+      }
+
+      #modal-content #settings-sections .settings-section {
+        scroll-margin-top: 5rem;
+      }
+
+      #modal-content #settings-sections .settings-section {
+        border: 0 !important;
+        border-radius: 0 !important;
+        background: transparent !important;
+        box-shadow: none !important;
+        padding: 0 !important;
+      }
+
+      #settings-sections .settings-section>div {
+        max-width: none !important;
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+      }
+
+      #modal-content #settings-sections .min-w-\[160px\],
+      #modal-content #settings-sections .min-w-\[200px\],
+      #modal-content #settings-sections .max-w-\[520px\] {
+        min-width: 0 !important;
+        max-width: none !important;
+        width: 100% !important;
+      }
+
+      #modal-content .backup-button-grid {
+        flex-wrap: nowrap !important;
+        gap: 6px !important;
+      }
+
+      #modal-content .backup-button-grid>* {
+        flex: 1 1 0 !important;
+        min-width: 0 !important;
+      }
+
+      #modal-content .backup-button-grid button {
+        height: 40px !important;
+        min-height: 0 !important;
+        font-size: 14px !important;
+        line-height: 1 !important;
+        padding-top: 0.25rem !important;
+        padding-bottom: 0.25rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
+        white-space: nowrap !important;
+        overflow: hidden !important;
+        text-overflow: ellipsis !important;
+        font-weight: 400 !important;
+        border-width: 1px !important;
+        border-radius: 0.2rem !important;
+        background-color: #1e3a8a !important;
+        /* bg-blue-900 */
+        color: #ffffff !important;
+        border-color: #1e3a8a !important;
+        box-shadow: none !important;
+      }
+
+      #modal-content .backup-button-grid button:hover {
+        background-color: #000000 !important;
+        color: #ffffff !important;
+      }
+
+      /* غلب القاعدة العامة للأزرار داخل الأقسام على الموبايل لزرّي النسخ/الاستعادة */
+      #modal-content #settings-sections .backup-button-grid button {
+        padding-top: 0.2rem !important;
+        padding-bottom: 0.2rem !important;
+        min-height: 32px !important;
+      }
+
+      #modal-content .backup-button-grid button i {
+        display: none !important;
+      }
+
+      /* توصيل شريط العنوان العلوي بالشريط السفلي عبر حدود جانبية سوداء لكل قسم */
+      #modal-content #settings-sections .settings-section {
+        border-left: 2px solid #000 !important;
+        border-right: 2px solid #000 !important;
+        border-top: 0 !important;
+        border-bottom: 0 !important;
+        padding-left: 0 !important;
+        padding-right: 0 !important;
+        margin-bottom: var(--mobile-section-header-h, 24px) !important;
+      }
+
+      #modal-content #settings-sections .settings-section .mobile-section-header {
+        background: #000 !important;
+        color: #fff !important;
+        padding: 8px 10px !important;
+        font-weight: 700 !important;
+        text-align: center !important;
+        margin: 0 !important;
+      }
+
+      #modal-content #settings-sections .settings-section .mobile-section-footer {
+        background: #000 !important;
+        height: 4px !important;
+        margin: 8px 0 0 0 !important;
+      }
+
+      .mobile-section-divider {
+        position: relative;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        padding: 14px 8px 18px 8px;
+        margin: 10px 0 18px 0;
+      }
+
+      .mobile-section-divider-label {
+        position: relative;
+        background: #eafff2;
+        border: 1px solid rgba(0, 0, 0, 0.18);
+        padding: 4px 10px;
+        border-radius: 9999px;
+        font-size: 0.78rem;
+        font-weight: 800;
+        color: #0b1324;
+        letter-spacing: 0.2px;
+        box-shadow: 0 6px 14px rgba(15, 23, 42, 0.10);
+        max-width: calc(100% - 24px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .mobile-section-divider-vert {
+        position: relative;
+        height: 34px;
+        width: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-bottom: 6px;
+      }
+
+      .mobile-section-divider-vert-line {
+        width: 3px;
+        height: 100%;
+        border-radius: 9999px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.95) 40%, rgba(0, 0, 0, 0) 100%);
+        background-size: 100% 240%;
+        animation: mobileDividerFall 1.4s linear infinite;
+        opacity: 0.9;
+      }
+
+      .mobile-section-divider-vert-arrow {
+        position: absolute;
+        bottom: -2px;
+        width: 0;
+        height: 0;
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-top: 9px solid rgba(0, 0, 0, 0.9);
+        filter: drop-shadow(0 2px 2px rgba(15, 23, 42, 0.18));
+      }
+
+      @keyframes mobileDividerFall {
+        0% {
+          background-position: 0 200%;
+        }
+
+        100% {
+          background-position: 0 -20%;
+        }
+      }
+    }
+
+    #settings-sections .settings-section>div {
+      width: 100%;
+      max-width: 720px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+
+    #modal-content #settings-sections button {
+      padding-top: 0.75rem !important;
+      padding-bottom: 0.75rem !important;
+    }
+
+    /* توحيد ألوان شريط الإعدادات الجانبي مع الشاشة الرئيسية */
+    #modal-content .bg-gradient-to-b.from-slate-950.via-slate-900.to-slate-800 {
+      background: linear-gradient(180deg, #dff9ed 0%, #c9f2e0 100%) !important;
+      color: #0f172a !important;
+      border: 1px solid #9fdcc8 !important;
+    }
+
+    #modal-content .text-white\/80 {
+      color: #334155 !important;
+    }
+
+    #modal-content .rounded-xl.border.border-white\/10.bg-white\/5 {
+      background-color: #f6fffb !important;
+      border-color: #9fdcc8 !important;
+    }
+
+    #modal-content .settings-nav-btn {
+      background-color: #f6fffb !important;
+      border: 1px solid #9fdcc8 !important;
+      color: #0f172a !important;
+      padding-top: 0.75rem !important;
+      padding-bottom: 0.75rem !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      transition: background-color .15s ease, border-color .15s ease !important;
+    }
+
+    #modal-content .settings-nav-btn:hover {
+      background-color: #d1fae5 !important;
+      border-color: #34d399 !important;
+      border-width: 2px !important;
+      color: #064e3b !important;
+    }
+
+    /* الحالة النشطة التي يضبطها الجافاسكربت (bg-blue-600, text-white, border-blue-400) */
+    #modal-content .settings-nav-btn.bg-blue-600,
+    #modal-content .settings-nav-btn.border-blue-400 {
+      background-color: #dbfdec !important;
+      border-color: #6fcbb0 !important;
+      color: #0b1324 !important;
+      border-width: 2px !important;
+    }
+
+    #modal-content .settings-nav-btn.text-white {
+      color: #0f172a !important;
+    }
+
+    /* الحالة النشطة الجديدة (أوضح من الحالة القديمة) */
+    #modal-content .settings-nav-btn.is-active {
+      background-color: #a7f3d0 !important;
+      border-color: #10b981 !important;
+      border-width: 2px !important;
+      color: #064e3b !important;
+      box-shadow: 0 8px 18px rgba(16, 185, 129, 0.18) !important;
+    }
+
+    /* تحسين وضوح الـ focus */
+    #modal-content .settings-nav-btn:focus {
+      outline: none !important;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.22) !important;
+    }
+
+    /* إزالة تأثير الـ ring الداكن داخل الحاوية */
+    #modal-content .ring-1.ring-white\/10 {
+      box-shadow: none !important;
+    }
+
+    /* اجعل الشريط ممتداً بطول الشاشة ومقاسه أوضح */
+    #modal-content .sticky.top-14 {
+      height: calc(100vh - 3.5rem) !important;
+      min-height: calc(100vh - 3.5rem) !important;
+    }
+
+    /* توسيع عرض الشريط قليلاً على الشاشات الكبيرة */
+    #modal-content .md\:w-80 {
+      width: 24rem !important;
+      /* كان 20rem (w-80) */
+    }
+
+    /* السماح للوحة الداخلية بالتمدد والتمرير */
+    #modal-content .rounded-2xl.p-4.sticky.top-14 {
+      display: flex !important;
+      flex-direction: column !important;
+      overflow: visible !important;
+    }
+
+    #modal-content .rounded-xl.p-2.h-full {
+      flex: 1 1 auto !important;
+      min-height: 0 !important;
+      overflow: auto !important;
+    }
+
+    /* جعل الهوفر أكثر وضوحاً بدون مؤثرات ثقيلة */
+    #modal-content .settings-nav-btn {
+      font-size: 1.05rem !important;
+      cursor: pointer;
+    }
+
+    #modal-content .settings-nav-btn:hover {
+      transform: translateY(-1px) scale(1.005);
+    }
+
+    #modal-content .backup-button-grid {
+      display: flex !important;
+      gap: 8px !important;
+      align-items: stretch !important;
+      flex-wrap: nowrap !important;
+    }
+
+    #modal-content .backup-button-grid>* {
+      flex: 1 1 0 !important;
+      min-width: 0 !important;
+    }
+
+    #modal-content .backup-button-grid button {
+      min-height: 46px;
+      width: 100% !important;
+    }
+
+    #modal-content #settings-sections .settings-section {
+      border: 2px solid #9fdcc8 !important;
+      border-radius: 14px !important;
+      background: #f6fffb !important;
+      box-shadow: 0 10px 24px rgba(15, 23, 42, .10) !important;
+      padding: 12px !important;
+    }
+
+    #modal-content .settings-section>.bg-white {
+      border: 2px solid #9fdcc8 !important;
+      border-radius: 14px !important;
+      box-shadow: 0 8px 18px rgba(15, 23, 42, .10) !important;
+    }
+
+    #modal-content .settings-section>.bg-white:hover {
+      border-color: #6fcbb0 !important;
+      box-shadow: 0 10px 22px rgba(15, 23, 42, .14) !important;
+    }
+
+    #modal-content .bg-white.border {
+      border-width: 2px !important;
+      border-color: #9fdcc8 !important;
+      border-radius: 14px !important;
+    }
+
+    #modal-content #settings-sections .settings-section>.bg-white.border {
+      border-width: 1px !important;
+    }
+
+    #modal-content #settings-sections .settings-section>.bg-white.border:hover {
+      border-width: 1px !important;
+    }
+
+    #modal-content #settings-section-general>.general-card-thin-border {
+      border-width: 1px !important;
+    }
+
+    #modal-content #settings-section-general>.general-card-thin-border:hover {
+      border-width: 1px !important;
+    }
+
+    #modal-content #settings-section-general.settings-section {
+      border: 0 !important;
+      box-shadow: none !important;
+      background: #eafff2 !important;
+      padding: 12px !important;
+    }
+
+    #modal-content #settings-section-security.settings-section,
+    #modal-content #settings-section-backup.settings-section,
+    #modal-content #settings-section-updates.settings-section,
+    #modal-content #settings-section-license.settings-section {
+      border: 0 !important;
+      box-shadow: none !important;
+      background: #eafff2 !important;
+      padding: 12px !important;
+    }
+
+    @media (max-width: 768px) {
+      #modal-content #settings-section-general.settings-section {
+        border-left: 0 !important;
+        border-right: 0 !important;
+      }
+
+      #modal-content #settings-section-security.settings-section,
+      #modal-content #settings-section-backup.settings-section,
+      #modal-content #settings-section-updates.settings-section,
+      #modal-content #settings-section-license.settings-section {
+        border-left: 0 !important;
+        border-right: 0 !important;
+      }
+    }
+  </style>
+</head>
+
+<body class="min-h-screen low-power bg-black settings-page">
+
+  <header class="fixed top-0 left-0 right-0 z-40 px-2 py-0.5 bg-blue-900 border-b border-blue-900">
+    <div class="w-full">
+      <div class="grid grid-cols-3 items-center">
+        <div class="justify-self-start">
+          <button id="back-to-main"
+            class="inline-flex items-center gap-1 px-1.5 py-0.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+            <i class="ri-arrow-right-line text-white text-sm"></i>
+            <span class="text-white">الرئيسيه</span>
+          </button>
+        </div>
+
+        <div class="justify-self-center">
+          <button id="copyable-title"
+            class="inline-flex items-center gap-1 px-2 py-0.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold"
+            title="اضغط للنسخ">
+            <i class="ri-settings-3-line text-white text-sm"></i>
+            <span class="text-sm font-semibold text-white" id="page-title">الإعدادات</span>
+          </button>
+        </div>
+
+        <div class="justify-self-end"></div>
+      </div>
+    </div>
+  </header>
+
+  <main class="flex-1 p-0 mt-8">
+    <div class="container mx-auto px-0 py-0 max-w-full">
+      <div class="bg-white rounded-none shadow-none p-0">
+        <div id="settings-content-container">
+          <div id="modal-container" class="p-0" data-lock-size="true">
+            <div class="hidden">
+              <button id="modal-close-button"></button>
+              <h2 id="modal-title"></h2>
+            </div>
+            <div id="modal-content" class="text-gray-600"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <div id="modal" class="fixed inset-0 bg-black/60 hidden z-50 overflow-y-auto">
+    <div class="flex items-start justify-center min-h-screen py-2 px-2">
+      <div id="modal-popup-container" class="bg-white rounded-lg max-w-7xl w-[95vw] my-4">
+        <div class="flex justify-between items-center mb-2 px-4 py-3 border-b border-gray-200">
+          <button id="modal-popup-close-button" class="text-gray-500">
+            <i class="ri-close-line text-xl"></i>
+          </button>
+          <h2 id="modal-popup-title" class="text-lg font-semibold text-gray-800"></h2>
+        </div>
+        <div id="modal-popup-content" class="px-4 pb-4"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="toast-container"></div>
+
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/trial.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/safe-confirm.js"></script>
+  <script src="js/autocomplete.js"></script>
+  <script src="js/modal.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/settings-users.js"></script>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', async function () {
+      try {
+        await initDB();
+
+        const loadScript = (src) => new Promise((resolve, reject) => {
+          try {
+            const s = document.createElement('script');
+            s.src = src;
+            s.async = false;
+            s.onload = () => resolve(true);
+            s.onerror = () => reject(new Error('Failed to load: ' + src));
+            document.body.appendChild(s);
+          } catch (e) {
+            reject(e);
+          }
+        });
+
+        const cacheBust = Date.now();
+        await loadScript('js/updater.js?_=' + cacheBust);
+        await loadScript('js/settings.js?_=' + cacheBust);
+
+        if (window.stateManager && typeof stateManager.setModalHistory === 'function') {
+          stateManager.setModalHistory([]);
+          stateManager.pushToModalHistory({ func: displaySettingsModal, args: [] });
+        }
+        await displaySettingsModal();
+
+        (function setVersionLabelFallback() {
+          const getVersion = () => {
+            try {
+              if (typeof UPDATE_CONFIG !== 'undefined' && UPDATE_CONFIG.currentVersion) return UPDATE_CONFIG.currentVersion;
+              return (window.APP_CURRENT_VERSION || '').toString().trim();
+            } catch (_) { return ''; }
+          };
+
+          const normalize = (v) => {
+            const m = String(v || '').match(/^v?(\d+)(?:\.(\d+))?(?:\.(\d+))?/i);
+            if (!m) return (v || '—');
+            return 'v.' + m[1] + '.' + (m[2] || '0') + '.' + (m[3] || '0');
+          };
+
+          const trySet = (tryIndex = 0) => {
+            const lbl = document.getElementById('current-version-label');
+            if (!lbl) {
+              if (tryIndex < 40) setTimeout(() => trySet(tryIndex + 1), 150);
+              return;
+            }
+            const v = getVersion();
+            if (!v) return;
+            lbl.textContent = 'الإصدار الحالي: ' + normalize(v);
+          };
+
+          trySet(0);
+          setTimeout(() => trySet(0), 500);
+          setTimeout(() => trySet(0), 1500);
+        })();
+
+        const backToMainBtn = document.getElementById('back-to-main');
+        if (backToMainBtn) {
+          backToMainBtn.addEventListener('click', function () {
+            window.location.href = 'index.html';
+          });
+        }
+
+        const closeBtn = document.getElementById('modal-close-button');
+        if (closeBtn) {
+          closeBtn.addEventListener('click', function () {
+            const title = (document.getElementById('modal-title')?.textContent || '').trim();
+            const inForm = title.includes('تعديل') || title.includes('إضافة');
+            if (inForm && typeof navigateBack === 'function') {
+              navigateBack();
+            } else {
+              window.location.href = 'index.html';
+            }
+          });
+        }
+      } catch (e) {
+        console.error(e);
+        alert('تعذر فتح نافذة الإعدادات');
+      }
+    });
+  </script>
+</body>
+
+</html>

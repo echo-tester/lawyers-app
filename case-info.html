@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>بيانات القضية</title>
+
+  <link rel="stylesheet" href="css/tailwind.min.css" />
+  <link rel="stylesheet" href="css/remixicon.css" />
+  <link rel="stylesheet" href="css/style.css" />
+  <link rel="stylesheet" href="css/search-responsive.css?v=3" />
+  <style>
+    .low-power *, .low-power *::before, .low-power *::after {
+      animation: none !important;
+      transition: none !important;
+      box-shadow: none !important;
+      text-shadow: none !important;
+      filter: none !important;
+      transform: none !important;
+      backdrop-filter: none !important;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col low-power" style="background: linear-gradient(135deg, #334155, #111827, #1e3a8a);">
+  
+  <header class="fixed top-0 left-0 right-0 z-40 px-2 py-1 bg-blue-900 border-b border-blue-900">
+    <div class="grid grid-cols-3 items-center">
+      
+      <div class="justify-self-start">
+        <button id="back-to-sessions" class="inline-flex items-center gap-1.5 px-3 py-1.5 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm">
+          <i class="ri-arrow-right-line text-white text-base"></i>
+          <span class="text-white">رجوع</span>
+        </button>
+      </div>
+
+      
+      <div class="justify-self-center">
+        <button id="copyable-title" class="inline-flex items-center gap-1 px-3 py-1 bg-transparent border border-white/20 rounded-full shadow-sm text-white hover:bg-white/10 text-sm font-semibold" title="اضغط للنسخ">
+          <i class="ri-briefcase-line text-white text-base"></i>
+          <span class="text-sm font-semibold text-white" id="page-title">بيانات القضية</span>
+        </button>
+      </div>
+
+      
+      <div class="justify-self-end"></div>
+    </div>
+  </header>
+
+  
+  <main class="flex-1 p-0 mt-10">
+    <div class="w-full h-full">
+      <div class="border-0 bg-white h-full">
+        <div id="modal-content" class="px-4 pb-4 text-gray-900"></div>
+      </div>
+    </div>
+  </main>
+
+  <div id="toast-container"></div>
+
+  <script src="js/state.js"></script>
+  <script src="js/db.js"></script>
+  <script src="js/toast.js"></script>
+  <script src="js/safe-confirm.js"></script>
+  <script src="js/header.js"></script>
+  <script src="js/case_opponent_view.js"></script>
+  <script src="js/client_view.js"></script>
+  <script>
+    function getQueryParam(name) {
+      const urlParams = new URLSearchParams(window.location.search);
+      return urlParams.get(name);
+    }
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Back button
+      document.getElementById('back-to-sessions')?.addEventListener('click', () => {
+        window.location.href = 'sessions.html';
+      });
+
+      // دعم تعديل الجلسة داخل صفحة بيانات القضية
+      try {
+        if (!window.__caseInfoSessionEditHandlerAdded) {
+          window.__caseInfoSessionEditHandlerAdded = true;
+          document.addEventListener('click', (e) => {
+            try {
+              const btn = e.target && e.target.closest ? e.target.closest('.edit-session-btn') : null;
+              if (!btn) return;
+              e.preventDefault();
+              e.stopPropagation();
+              const sid = btn.dataset ? btn.dataset.sessionId : null;
+              const id = parseInt(String(sid || '0'), 10);
+              if (!id) return;
+              window.location.href = `session-edit.html?sessionId=${encodeURIComponent(String(id))}`;
+            } catch (_) { }
+          }, true);
+        }
+      } catch (_) { }
+
+      // الرجوع يعيدك لنفس الفلترة/الفرز لأن الحالة محفوظة مسبقاً في الجلسات
+
+      try { await initDB(); } catch (e) {}
+
+      const sessionIdStr = getQueryParam('sessionId');
+      if (!sessionIdStr) {
+        document.getElementById('modal-content').innerHTML = '<div class="p-8 text-center text-red-600">لا يوجد معرّف جلسة في الرابط.</div>';
+        return;
+      }
+      const sessionId = parseInt(sessionIdStr, 10);
+      const sessionData = await getById('sessions', sessionId);
+      if (!sessionData || !sessionData.caseId) {
+        document.getElementById('modal-content').innerHTML = '<div class="p-8 text-center text-red-600">تعذّر الوصول لبيانات الجلسة أو القضية.</div>';
+        return;
+      }
+
+      const caseData = await getById('cases', sessionData.caseId);
+      if (!caseData || !caseData.clientId) {
+        document.getElementById('modal-content').innerHTML = '<div class="p-8 text-center text-red-600">تعذّر الوصول لبيانات القضية أو الموكل.</div>';
+        return;
+      }
+
+      // Navigate to the client view form (existing screen) inside this dedicated page
+      if (typeof displayClientViewForm === 'function') {
+        await displayClientViewForm(caseData.clientId);
+        const pageHeaderTitle = document.getElementById('page-title');
+        if (pageHeaderTitle) pageHeaderTitle.textContent = 'بيانات القضية';
+
+        // Read-only cleanup: remove editing and adding controls and sessions section
+        const removeIfExists = (el) => { if (el && el.remove) el.remove(); };
+        removeIfExists(document.getElementById('add-case-for-client-btn'));
+        removeIfExists(document.getElementById('edit-client-data-btn'));
+        // لا نحتاج أزرار التنقل بين القضايا هنا (هذه الصفحة لقضية واحدة فقط)
+        try {
+          const prevBtn = document.getElementById('prev-case-btn');
+          const nextBtn = document.getElementById('next-case-btn');
+          const idxEl = document.getElementById('current-case-index');
+          const navBar = (prevBtn && prevBtn.closest) ? prevBtn.closest('.inline-flex') : null;
+          const navBar2 = (!navBar && nextBtn && nextBtn.closest) ? nextBtn.closest('.inline-flex') : null;
+          const navBar3 = (!navBar && !navBar2 && idxEl && idxEl.closest) ? idxEl.closest('.inline-flex') : null;
+          const navRoot = navBar || navBar2 || navBar3;
+          if (navRoot && navRoot.parentElement) {
+            navRoot.parentElement.remove();
+          } else {
+            removeIfExists(prevBtn);
+            removeIfExists(nextBtn);
+            removeIfExists(idxEl);
+          }
+        } catch (e) {
+          removeIfExists(document.getElementById('prev-case-btn'));
+          removeIfExists(document.getElementById('next-case-btn'));
+          removeIfExists(document.getElementById('current-case-index'));
+        }
+        try {
+          const prevClientCapBtn = document.getElementById('prev-client-capacity-btn');
+          if (prevClientCapBtn && prevClientCapBtn.parentElement) {
+            prevClientCapBtn.parentElement.remove();
+          } else {
+            removeIfExists(document.getElementById('next-client-capacity-btn'));
+            removeIfExists(document.getElementById('current-client-capacity-index'));
+          }
+        } catch (e) {}
+        document.querySelectorAll('.edit-case-btn, .delete-case-btn, .add-session-for-case-btn, .edit-opponent-btn').forEach(el => el.remove());
+
+        // اخفاء زر الأرشفة عند عرض تفاصيل القضية من الإشعارات (عرض للقراءة فقط)
+        document.querySelectorAll('.toggle-archive-btn').forEach(el => el.remove());
+
+        // Keep only the related case card and expand it
+        try {
+          const targetCaseId = caseData.id;
+          const cards = document.querySelectorAll('.case-card');
+          cards.forEach(card => {
+            const cid = parseInt(card.getAttribute('data-case-id'), 10);
+            if (cid !== targetCaseId) {
+              card.remove();
+            }
+          });
+          const details = document.querySelector(`.case-details[data-case-id="${targetCaseId}"]`);
+          const arrow = document.querySelector(`.case-arrow[data-case-id="${targetCaseId}"]`);
+          if (details) details.classList.remove('hidden');
+          if (arrow) arrow.style.transform = 'rotate(180deg)';
+
+          // تحميل جلسات القضية فوراً (بدون الحاجة لإغلاق/فتح الكارت)
+          try {
+            let locale = 'ar-EG';
+            try {
+              if (typeof getSetting === 'function') {
+                const v = await getSetting('dateLocale');
+                if (v === 'ar-EG' || v === 'en-GB') locale = v;
+              }
+            } catch (e) {}
+            if (typeof loadCaseSessions === 'function') {
+              setTimeout(() => {
+                try { loadCaseSessions(targetCaseId, locale); } catch (e) {}
+              }, 0);
+            }
+          } catch (e) {}
+        } catch (e) {}
+        
+        try {
+          const opp = await getById('opponents', caseData.opponentId);
+          if (opp) {
+            const n = document.getElementById('opponent-name-value');
+            const c = document.getElementById('opponent-capacity-value');
+            const a = document.getElementById('opponent-address-value');
+            const p = document.getElementById('opponent-phone-value');
+            if (n) n.textContent = opp.name || 'فارغ';
+            if (c) c.textContent = (caseData && caseData.opponentCapacity) ? caseData.opponentCapacity : 'فارغ';
+            if (a) a.textContent = opp.address || 'فارغ';
+            if (p) p.textContent = opp.phone || 'فارغ';
+          }
+          const prevBtn = document.getElementById('prev-opponent-btn');
+          if (prevBtn && prevBtn.parentElement) prevBtn.parentElement.remove();
+          const nextBtn = document.getElementById('next-opponent-btn');
+          if (nextBtn) nextBtn.remove();
+          const idx = document.getElementById('current-opponent-index');
+          if (idx) idx.remove();
+        } catch (e) {}
+
+        try {
+          const clientCapEl = document.getElementById('client-capacity-value');
+          if (clientCapEl) clientCapEl.textContent = (caseData && caseData.clientCapacity) ? caseData.clientCapacity : (clientCapEl.textContent || 'فارغ');
+        } catch (e) {}
+      } else {
+        document.getElementById('modal-content').innerHTML = '<div class="p-8 text-center text-red-600">تعذّر تحميل عرض بيانات القضية.</div>';
+      }
+    });
+  </script>
+</body>
+</html>
