@@ -109,7 +109,7 @@ async function updateArchiveReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="archive-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="archive-report-content">
                     ${generateArchiveReportHTML(__reportsArchiveCurrentCases, __reportsArchiveCurrentClients, __reportsArchiveCurrentOpponents)}
                 </div>
             </div>

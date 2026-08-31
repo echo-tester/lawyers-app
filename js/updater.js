@@ -2,7 +2,7 @@
 const UPDATE_CONFIG = {
     owner: 'echo-tester',
     repo: 'lawyers-app',
-    currentVersion: '4.0.5',
+    currentVersion: '4.0.7',
     stableTag: 'stable'
 };
 // [/UPDATE_CONFIG]

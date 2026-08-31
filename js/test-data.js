@@ -1,6 +1,6 @@
-﻿window.__LAW_APP_TEST_DATA = {
+window.__LAW_APP_TEST_DATA = {
   "version": "1.0.0",
-  "timestamp": "2026-04-22T09:10:00.000Z",
+  "timestamp": "2026-09-01T08:00:00.000Z",
   "data": {
     "clients": [
       {
@@ -163,7 +163,6 @@
         "isArchived": false,
         "notes": "طلب رفع الحجز على حساب بنكي"
       },
-
       {
         "id": 4,
         "clientId": 2,
@@ -208,7 +207,6 @@
         "isArchived": false,
         "notes": "مطالبة بقيمة شحن متأخر لنفس الخصم"
       },
-
       {
         "id": 6,
         "clientId": 3,
@@ -231,7 +229,6 @@
         "isArchived": false,
         "notes": "نزاع على توريد بضاعة وطلبات تعويض"
       },
-
       {
         "id": 7,
         "clientId": 4,
@@ -370,7 +367,7 @@
         "id": 1,
         "clientId": 1,
         "caseId": 1,
-        "sessionDate": "2026-04-22",
+        "sessionDate": "2026-09-01",
         "sessionTime": "10:00",
         "court": "محكمة طنطا الابتدائية",
         "sessionType": "مرافعة",
@@ -385,7 +382,7 @@
         "id": 2,
         "clientId": 1,
         "caseId": 1,
-        "sessionDate": "2026-04-24",
+        "sessionDate": "2026-09-01",
         "sessionTime": "11:30",
         "court": "محكمة طنطا الابتدائية",
         "sessionType": "مستندات",
@@ -396,12 +393,11 @@
         "requests": "ضم عقد الإيجار",
         "notes": "تقديم مستندات"
       },
-
       {
         "id": 3,
         "clientId": 1,
         "caseId": 2,
-        "sessionDate": "2026-04-23",
+        "sessionDate": "2026-09-01",
         "sessionTime": "09:30",
         "court": "محكمة طنطا الابتدائية",
         "sessionType": "مرافعة",
@@ -416,7 +412,7 @@
         "id": 4,
         "clientId": 1,
         "caseId": 2,
-        "sessionDate": "2026-04-26",
+        "sessionDate": "2026-09-02",
         "sessionTime": "10:30",
         "court": "محكمة طنطا الابتدائية",
         "sessionType": "مستندات",
@@ -431,7 +427,7 @@
         "id": 5,
         "clientId": 1,
         "caseId": 2,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-02",
         "sessionTime": "12:00",
         "court": "محكمة طنطا الابتدائية",
         "sessionType": "حكم",
@@ -442,12 +438,11 @@
         "requests": "مرافعة ختامية",
         "notes": "قبل النطق بالحكم"
       },
-
       {
         "id": 6,
         "clientId": 1,
         "caseId": 3,
-        "sessionDate": "2026-04-25",
+        "sessionDate": "2026-09-02",
         "sessionTime": "13:00",
         "court": "محكمة بورسعيد الابتدائية",
         "sessionType": "طلب",
@@ -458,12 +453,11 @@
         "requests": "ضم إفادة",
         "notes": "جلسة واحدة مبدئية"
       },
-
       {
         "id": 7,
         "clientId": 2,
         "caseId": 4,
-        "sessionDate": "2026-04-27",
+        "sessionDate": "2026-09-03",
         "sessionTime": "10:00",
         "court": "محكمة كفر الشيخ الابتدائية",
         "sessionType": "مرافعة",
@@ -478,7 +472,7 @@
         "id": 8,
         "clientId": 2,
         "caseId": 4,
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-03",
         "sessionTime": "11:00",
         "court": "محكمة كفر الشيخ الابتدائية",
         "sessionType": "مستندات",
@@ -489,12 +483,11 @@
         "requests": "ضم تقرير",
         "notes": "مستندات"
       },
-
       {
         "id": 9,
         "clientId": 2,
         "caseId": 5,
-        "sessionDate": "2026-04-28",
+        "sessionDate": "2026-09-03",
         "sessionTime": "09:45",
         "court": "محكمة كفر الشيخ الابتدائية",
         "sessionType": "مرافعة",
@@ -509,7 +502,7 @@
         "id": 10,
         "clientId": 2,
         "caseId": 5,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-06",
         "sessionTime": "12:15",
         "court": "محكمة كفر الشيخ الابتدائية",
         "sessionType": "مستندات",
@@ -520,12 +513,11 @@
         "requests": "ضم سند شحن",
         "notes": "متابعة"
       },
-
       {
         "id": 11,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-22",
+        "sessionDate": "2026-09-06",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مرافعة",
@@ -540,7 +532,7 @@
         "id": 12,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-23",
+        "sessionDate": "2026-09-06",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مستندات",
@@ -555,7 +547,7 @@
         "id": 13,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-24",
+        "sessionDate": "2026-09-06",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "خبرة",
@@ -570,7 +562,7 @@
         "id": 14,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-25",
+        "sessionDate": "2026-09-07",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مناقشة تقرير",
@@ -585,7 +577,7 @@
         "id": 15,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-26",
+        "sessionDate": "2026-09-07",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مرافعة",
@@ -600,7 +592,7 @@
         "id": 16,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-27",
+        "sessionDate": "2026-09-07",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مستندات",
@@ -615,7 +607,7 @@
         "id": 17,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-28",
+        "sessionDate": "2026-09-08",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مرافعة",
@@ -630,7 +622,7 @@
         "id": 18,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-29",
+        "sessionDate": "2026-09-08",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "حكم",
@@ -645,7 +637,7 @@
         "id": 19,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-08",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مرافعة",
@@ -660,7 +652,7 @@
         "id": 20,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-09",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "مرافعة",
@@ -675,7 +667,7 @@
         "id": 21,
         "clientId": 3,
         "caseId": 6,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-09",
         "sessionTime": "10:00",
         "court": "محكمة العاشر من رمضان الابتدائية",
         "sessionType": "حكم",
@@ -686,12 +678,11 @@
         "requests": "استخراج صيغة تنفيذية",
         "notes": "11 من 11"
       },
-
       {
         "id": 22,
         "clientId": 4,
         "caseId": 7,
-        "sessionDate": "2026-04-29",
+        "sessionDate": "2026-09-09",
         "sessionTime": "09:30",
         "court": "محكمة المنصورة الابتدائية",
         "sessionType": "مرافعة",
@@ -706,7 +697,7 @@
         "id": 23,
         "clientId": 5,
         "caseId": 8,
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-10",
         "sessionTime": "11:00",
         "court": "محكمة الإسماعيلية الابتدائية",
         "sessionType": "مرافعة",
@@ -721,7 +712,7 @@
         "id": 24,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-22",
+        "sessionDate": "2026-09-10",
         "sessionTime": "09:30",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "مرافعة",
@@ -736,7 +727,7 @@
         "id": 25,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-23",
+        "sessionDate": "2026-09-10",
         "sessionTime": "10:00",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "مستندات",
@@ -751,7 +742,7 @@
         "id": 26,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-24",
+        "sessionDate": "2026-09-10",
         "sessionTime": "11:00",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "طلب",
@@ -766,7 +757,7 @@
         "id": 27,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-25",
+        "sessionDate": "2026-09-13",
         "sessionTime": "12:00",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "خبرة",
@@ -781,7 +772,7 @@
         "id": 28,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-26",
+        "sessionDate": "2026-09-13",
         "sessionTime": "09:45",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "مناقشة تقرير",
@@ -796,7 +787,7 @@
         "id": 29,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-27",
+        "sessionDate": "2026-09-13",
         "sessionTime": "10:30",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "مرافعة",
@@ -811,7 +802,7 @@
         "id": 30,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-04-29",
+        "sessionDate": "2026-09-14",
         "sessionTime": "11:30",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "مستندات",
@@ -826,7 +817,7 @@
         "id": 31,
         "clientId": 7,
         "caseId": 10,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-14",
         "sessionTime": "12:15",
         "court": "محكمة القاهرة الابتدائية",
         "sessionType": "حكم",
@@ -841,7 +832,7 @@
         "id": 32,
         "clientId": 8,
         "caseId": 11,
-        "sessionDate": "2026-04-28",
+        "sessionDate": "2026-09-14",
         "sessionTime": "09:30",
         "court": "محكمة شمال القاهرة الابتدائية",
         "sessionType": "مرافعة",
@@ -856,7 +847,7 @@
         "id": 33,
         "clientId": 8,
         "caseId": 11,
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-15",
         "sessionTime": "10:45",
         "court": "محكمة شمال القاهرة الابتدائية",
         "sessionType": "مستندات",
@@ -871,7 +862,7 @@
         "id": 34,
         "clientId": 9,
         "caseId": 12,
-        "sessionDate": "2026-04-29",
+        "sessionDate": "2026-09-15",
         "sessionTime": "12:00",
         "court": "محكمة الزقازيق الابتدائية",
         "sessionType": "مرافعة",
@@ -886,7 +877,7 @@
         "id": 35,
         "clientId": 9,
         "caseId": 12,
-        "sessionDate": "2026-05-01",
+        "sessionDate": "2026-09-15",
         "sessionTime": "09:15",
         "court": "محكمة الزقازيق الابتدائية",
         "sessionType": "مستندات",
@@ -903,7 +894,7 @@
         "id": 1,
         "clientId": 1,
         "task": "تحضير ملف القضية وتجميع المستندات",
-        "dueDate": "2026-04-22",
+        "dueDate": "2026-09-01",
         "completed": false,
         "location": "مكتب المحاماة",
         "notes": "مطلوب تجهيز ملف القضية قبل جلسة الغد",
@@ -913,7 +904,7 @@
         "id": 2,
         "clientId": 2,
         "task": "متابعة إعلان الخصم (شركة النجم للشحن)",
-        "dueDate": "2026-04-23",
+        "dueDate": "2026-09-02",
         "completed": false,
         "location": "قلم المحضرين",
         "notes": "التأكد من تمام الإعلان وتسليم الإيصال",
@@ -923,7 +914,7 @@
         "id": 3,
         "clientId": 3,
         "task": "متابعة تقرير الخبرة ومراجعة الملاحظات",
-        "dueDate": "2026-04-24",
+        "dueDate": "2026-09-03",
         "completed": false,
         "location": "مكتب الخبير",
         "notes": "استلام نسخة من التقرير ومراجعة البنود",
@@ -933,7 +924,7 @@
         "id": 4,
         "clientId": 4,
         "task": "مراجعة مطالبة التأمين وتجهيز مذكرة",
-        "dueDate": "2026-04-27",
+        "dueDate": "2026-09-06",
         "completed": false,
         "location": "مكتب المحاماة",
         "notes": "تجهيز مذكرة مختصرة وطلب ضم مستندات",
@@ -943,7 +934,7 @@
         "id": 5,
         "clientId": null,
         "task": "جرد المواعيد وإرسال تذكير بالجلسات",
-        "dueDate": "2026-04-22",
+        "dueDate": "2026-09-07",
         "completed": true,
         "location": "مكتب المحاماة",
         "notes": "تم إرسال التذكيرات",
@@ -953,7 +944,7 @@
         "id": 6,
         "clientId": 7,
         "task": "مراجعة مستندات الموكل الجديد وتجهيز ملف الدعوى",
-        "dueDate": "2026-04-23",
+        "dueDate": "2026-09-08",
         "completed": false,
         "location": "مكتب المحاماة",
         "notes": "عمل إداري تجريبي مرتبط بالموكل الجديد",
@@ -963,7 +954,7 @@
         "id": 7,
         "clientId": 8,
         "task": "مراجعة المستندات وتجهيز صحيفة الدعوى",
-        "dueDate": "2026-04-28",
+        "dueDate": "2026-09-09",
         "completed": false,
         "location": "مكتب المحاماة",
         "notes": "متابعة مستندات الموكل الجديد (8) قبل الجلسة",
@@ -973,7 +964,7 @@
         "id": 8,
         "clientId": 9,
         "task": "متابعة إعلان الخصم وتجهيز مذكرة مختصرة",
-        "dueDate": "2026-04-29",
+        "dueDate": "2026-09-10",
         "completed": false,
         "location": "قلم المحضرين",
         "notes": "إجراء إداري للموكل الجديد (9) مرتبط بالقضية",
@@ -1423,12 +1414,12 @@
         "caseNumber": "6060/2023",
         "sessionType": "معاينة",
         "status": "مجدولة",
-        "sessionDate": "2026-04-24",
+        "sessionDate": "2026-09-02",
         "sessionTime": "12:00",
         "expertName": "م/ أحمد حسني",
         "outgoingNumber": "15",
         "incomingNumber": "22",
-        "notes": "معاينة موقع النزاع وإعداد محضر" 
+        "notes": "معاينة موقع النزاع وإعداد محضر"
       },
       {
         "id": 2,
@@ -1436,12 +1427,12 @@
         "caseNumber": "6060/2023",
         "sessionType": "تقديم مستندات",
         "status": "تمت",
-        "sessionDate": "2026-04-23",
+        "sessionDate": "2026-09-03",
         "sessionTime": "11:00",
         "expertName": "م/ أحمد حسني",
         "outgoingNumber": "16",
         "incomingNumber": "23",
-        "notes": "تم تسليم صور المستندات للخبير" 
+        "notes": "تم تسليم صور المستندات للخبير"
       },
       {
         "id": 3,
@@ -1449,12 +1440,12 @@
         "caseNumber": "2156/2025",
         "sessionType": "مناقشة",
         "status": "مجدولة",
-        "sessionDate": "2026-04-26",
+        "sessionDate": "2026-09-06",
         "sessionTime": "10:30",
         "expertName": "د/ محمد عبد السلام",
         "outgoingNumber": "17",
         "incomingNumber": "24",
-        "notes": "مناقشة نقاط النزاع أمام الخبير" 
+        "notes": "مناقشة نقاط النزاع أمام الخبير"
       },
       {
         "id": 4,
@@ -1462,12 +1453,12 @@
         "caseNumber": "3421/2025",
         "sessionType": "تقرير خبير",
         "status": "تمت",
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-07",
         "sessionTime": "14:00",
         "expertName": "د/ نهى السيد",
         "outgoingNumber": "18",
         "incomingNumber": "25",
-        "notes": "استلام نسخة من تقرير الخبرة" 
+        "notes": "استلام نسخة من تقرير الخبرة"
       },
       {
         "id": 5,
@@ -1475,12 +1466,12 @@
         "caseNumber": "1188/2025",
         "sessionType": "أخرى",
         "status": "ملغية",
-        "sessionDate": "2026-04-29",
+        "sessionDate": "2026-09-08",
         "sessionTime": "09:00",
         "expertName": "م/ خالد طه",
         "outgoingNumber": "19",
         "incomingNumber": "26",
-        "notes": "تم الإلغاء لعدم حضور الخصم" 
+        "notes": "تم الإلغاء لعدم حضور الخصم"
       },
       {
         "id": 6,
@@ -1488,12 +1479,12 @@
         "caseNumber": "9001/2026",
         "sessionType": "تقديم مستندات",
         "status": "مجدولة",
-        "sessionDate": "2026-04-25",
+        "sessionDate": "2026-09-09",
         "sessionTime": "13:00",
         "expertName": "د/ سامح إبراهيم",
         "outgoingNumber": "20",
         "incomingNumber": "27",
-        "notes": "جلسة خبراء تجريبية للموكل الجديد" 
+        "notes": "جلسة خبراء تجريبية للموكل الجديد"
       },
       {
         "id": 7,
@@ -1501,12 +1492,12 @@
         "caseNumber": "5100/2026",
         "sessionType": "معاينة",
         "status": "مجدولة",
-        "sessionDate": "2026-04-28",
+        "sessionDate": "2026-09-10",
         "sessionTime": "15:00",
         "expertName": "م/ شريف أحمد",
         "outgoingNumber": "21",
         "incomingNumber": "28",
-        "notes": "جلسة خبراء مضافة للموكل الجديد (8)" 
+        "notes": "جلسة خبراء مضافة للموكل الجديد (8)"
       },
       {
         "id": 8,
@@ -1514,12 +1505,12 @@
         "caseNumber": "5101/2026",
         "sessionType": "تقديم مستندات",
         "status": "مجدولة",
-        "sessionDate": "2026-04-30",
+        "sessionDate": "2026-09-14",
         "sessionTime": "11:30",
         "expertName": "د/ منى عبد الله",
         "outgoingNumber": "22",
         "incomingNumber": "29",
-        "notes": "جلسة خبراء مضافة للموكل الجديد (9)" 
+        "notes": "جلسة خبراء مضافة للموكل الجديد (9)"
       }
     ],
     "clerkPapers": [
@@ -1530,8 +1521,8 @@
         "paperType": "إعلان",
         "paperNumber": "2156/2025",
         "clerkOffice": "قلم محضري طنطا",
-        "deliveryDate": "2026-04-22",
-        "receiptDate": "2026-04-24",
+        "deliveryDate": "2026-09-01",
+        "receiptDate": "2026-09-06",
         "notes": "تم تسليم الإعلان للخصم"
       },
       {
@@ -1541,8 +1532,8 @@
         "paperType": "إنذار",
         "paperNumber": "3421/2025",
         "clerkOffice": "قلم محضري كفر الشيخ",
-        "deliveryDate": "2026-04-27",
-        "receiptDate": "2026-04-30",
+        "deliveryDate": "2026-09-02",
+        "receiptDate": "2026-09-07",
         "notes": "إنذار على يد محضر بخصوص المديونية"
       },
       {
@@ -1552,8 +1543,8 @@
         "paperType": "إعلان",
         "paperNumber": "6060/2023",
         "clerkOffice": "قلم محضري العاشر من رمضان",
-        "deliveryDate": "2026-04-23",
-        "receiptDate": "2026-04-24",
+        "deliveryDate": "2026-09-03",
+        "receiptDate": "2026-09-08",
         "notes": "إعلان موعد الخبرة"
       },
       {
@@ -1563,8 +1554,8 @@
         "paperType": "أخرى",
         "paperNumber": "1188/2025",
         "clerkOffice": "قلم محضري المنصورة",
-        "deliveryDate": "2026-04-29",
-        "receiptDate": "",
+        "deliveryDate": "2026-09-06",
+        "receiptDate": "2026-09-09",
         "notes": "جارٍ متابعة الاستلام"
       },
       {
@@ -1574,8 +1565,8 @@
         "paperType": "إنذار",
         "paperNumber": "220/2024",
         "clerkOffice": "قلم محضري الإسماعيلية",
-        "deliveryDate": "2026-04-30",
-        "receiptDate": "2026-05-01",
+        "deliveryDate": "2026-09-07",
+        "receiptDate": "2026-09-10",
         "notes": "تم الإنذار وتم استلام أصل الورقة"
       },
       {
@@ -1585,8 +1576,8 @@
         "paperType": "إعلان",
         "paperNumber": "9001/2026",
         "clerkOffice": "قلم محضري مدينة نصر",
-        "deliveryDate": "2026-04-22",
-        "receiptDate": "2026-04-23",
+        "deliveryDate": "2026-09-08",
+        "receiptDate": "2026-09-13",
         "notes": "ورقة قلم كتاب تجريبية للموكل الجديد"
       },
       {
@@ -1596,8 +1587,8 @@
         "paperType": "إعلان",
         "paperNumber": "5100/2026",
         "clerkOffice": "قلم محضري شمال القاهرة",
-        "deliveryDate": "2026-04-28",
-        "receiptDate": "2026-04-30",
+        "deliveryDate": "2026-09-09",
+        "receiptDate": "2026-09-14",
         "notes": "ورقة قلم كتاب مضافة للموكل الجديد (8)"
       },
       {
@@ -1607,8 +1598,8 @@
         "paperType": "إنذار",
         "paperNumber": "5101/2026",
         "clerkOffice": "قلم محضري الزقازيق",
-        "deliveryDate": "2026-04-29",
-        "receiptDate": "2026-05-01",
+        "deliveryDate": "2026-09-10",
+        "receiptDate": "2026-09-15",
         "notes": "ورقة قلم كتاب مضافة للموكل الجديد (9)"
       }
     ]

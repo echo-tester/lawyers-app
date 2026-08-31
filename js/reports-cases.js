@@ -555,8 +555,11 @@ async function updateSessionsReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="sessions-report-content">
-                    ${generateSessionsReportHTML(__reportsCasesCurrentSessions)}
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="sessions-report-content">
+                    <div class="flex items-center justify-center py-12 text-gray-400">
+                        <i class="ri-loader-4-line animate-spin text-3xl ml-2"></i>
+                        <span>جاري إعداد تقرير القضايا...</span>
+                    </div>
                 </div>
             </div>
         `;
@@ -595,8 +598,14 @@ async function updateSessionsReportContent(reportName, reportType) {
 }
 
 
+let __reportsCasesChunkTimer = null;
+
 function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
-    if (sessions.length === 0) {
+    if (__reportsCasesChunkTimer) {
+        cancelAnimationFrame(__reportsCasesChunkTimer);
+        __reportsCasesChunkTimer = null;
+    }
+    if (!sessions || sessions.length === 0) {
         return `
             <div class="text-center text-gray-500 py-16">
                 <div class="mb-6">
@@ -622,7 +631,7 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
         }
     });
 
-    const tableRows = sessionsData.map((session, i) => {
+    const buildRowHtml = (session, i) => {
         const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-orange-50 to-amber-50' : 'bg-white';
         const rowData = __getReportsCasesRowData(session);
         const cellsHtml = visibleColumns.map(col => {
@@ -638,7 +647,10 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
                 ${cellsHtml}
             </tr>
         `;
-    }).join('');
+    };
+
+    const initialBatchSize = 100;
+    const initialRows = sessionsData.slice(0, initialBatchSize).map((s, i) => buildRowHtml(s, i)).join('');
 
     const headerHtml = visibleColumns.map(col => `
         <th style="position: sticky; top: 0; z-index: 20; width: ${columnWidth}%; min-width: 150px; background-color: #ea580c !important; color: white !important; border-color: #f97316 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #f97316;">
@@ -653,6 +665,27 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
         </th>
     `).join('');
 
+    if (sessionsData.length > initialBatchSize) {
+        let currentIndex = initialBatchSize;
+        const appendNextChunk = () => {
+            const tbody = document.getElementById('sessions-table-body');
+            if (!tbody) return;
+            const end = Math.min(currentIndex + 100, sessionsData.length);
+            let chunkHtml = '';
+            for (let i = currentIndex; i < end; i++) {
+                chunkHtml += buildRowHtml(sessionsData[i], i);
+            }
+            tbody.insertAdjacentHTML('beforeend', chunkHtml);
+            currentIndex = end;
+            if (currentIndex < sessionsData.length) {
+                __reportsCasesChunkTimer = requestAnimationFrame(appendNextChunk);
+            } else {
+                __reportsCasesChunkTimer = null;
+            }
+        };
+        __reportsCasesChunkTimer = requestAnimationFrame(appendNextChunk);
+    }
+
     return `
         <div class="sessions-report-container" style="height: 100%; overflow-y: auto; position: relative;">
             <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-x-auto">
@@ -663,7 +696,7 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
                         </tr>
                     </thead>
                     <tbody id="sessions-table-body">
-                        ${tableRows}
+                        ${initialRows}
                     </tbody>
                 </table>
             </div>

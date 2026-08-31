@@ -91,12 +91,11 @@ async function updateClientsFilesReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="clients-files-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="clients-files-report-content">
                     ${generateClientsFilesReportHTML(__reportsPoaCurrentClients, __reportsPoaCurrentCases)}
                 </div>
             </div>
         `;
-
 
         document.getElementById('clients-files-search').addEventListener('input', function (e) {
             filterClientsFilesReport(e.target.value, clients, cases);

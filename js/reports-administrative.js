@@ -26,11 +26,12 @@ function __applyAdministrativeSearchAndStatus(baseAdministrative, clients, searc
     const term = String(searchTerm || '').trim().toLowerCase();
 
     let data = Array.isArray(baseAdministrative) ? baseAdministrative.slice() : [];
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
     const cl = Array.isArray(clients) ? clients : [];
 
     if (term) {
         data = data.filter(work => {
-            const client = work.clientId ? cl.find(c => c.id === work.clientId) : null;
+            const client = work.clientId ? clientMap.get(work.clientId) : null;
             const clientName = client ? String(client.name || '').toLowerCase() : 'عام';
             const task = work.task ? String(work.task).toLowerCase() : '';
             const description = work.description ? String(work.description).toLowerCase() : '';
@@ -145,7 +146,7 @@ async function updateAdministrativeReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="administrative-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="administrative-report-content">
                     ${generateAdministrativeReportHTML(__reportsAdministrativeCurrentData, __reportsAdministrativeCurrentClients)}
                 </div>
             </div>
@@ -213,13 +214,14 @@ function generateAdministrativeReportHTML(administrative, clients, sortOrder = '
         }
     });
 
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
     let tableRows = '';
     filteredAdministrative.forEach((work, i) => {
 
         const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-indigo-50 to-blue-50' : 'bg-white';
 
 
-        const client = work.clientId ? clients.find(c => c.id === work.clientId) : null;
+        const client = work.clientId ? clientMap.get(work.clientId) : null;
         const clientName = client ? client.name : 'عام';
 
 

@@ -118,7 +118,7 @@ async function updateAccountsReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="accounts-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="accounts-report-content">
                     ${generateAccountsReportHTML(__reportsAccountsCurrentAccounts, __reportsAccountsCurrentClients)}
                 </div>
             </div>
@@ -160,10 +160,11 @@ function generateAccountsReportHTML(accounts, clients, sortOrder = 'desc') {
     }
 
 
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
     const clientGroups = {};
 
-    for (const account of accounts) {
-        const client = clients.find(c => c.id === account.clientId);
+    for (const account of (accounts || [])) {
+        const client = account.clientId ? clientMap.get(account.clientId) : null;
 
         if (!client) continue;
 
@@ -207,22 +208,22 @@ function generateAccountsReportHTML(accounts, clients, sortOrder = 'desc') {
 
         tableRows += `
             <tr class="report-record ${rowClass} border-b border-gray-200 hover:bg-gradient-to-l hover:from-teal-100 hover:to-cyan-100 transition-all duration-300 hover:shadow-sm">
-                <td class="py-4 px-6 text-center border-l border-gray-200">
-                    <div class="font-bold text-lg text-gray-800 hover:text-teal-700 transition-colors duration-200 truncate" title="${clientData.client.name}">${clientData.client.name}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 min-w-[160px]">
+                    <div class="font-bold text-base text-gray-800 hover:text-teal-700 transition-colors duration-200 truncate min-w-0" title="${clientData.client.name}">${clientData.client.name}</div>
                 </td>
-                <td class="py-4 px-4 text-center border-l border-gray-200 w-24 whitespace-nowrap">
+                <td class="py-4 px-3 text-center border-l border-gray-200 min-w-[100px] whitespace-nowrap">
                     <div class="font-bold text-base text-blue-600 hover:text-blue-700 transition-colors duration-200">${clientData.totalFees.toLocaleString()}</div>
                 </td>
-                <td class="py-4 px-4 text-center border-l border-gray-200 w-24 whitespace-nowrap">
+                <td class="py-4 px-3 text-center border-l border-gray-200 min-w-[100px] whitespace-nowrap">
                     <div class="font-bold text-base text-emerald-600 hover:text-emerald-700 transition-colors duration-200">${clientData.totalPaid.toLocaleString()}</div>
                 </td>
-                <td class="py-4 px-4 text-center border-l border-gray-200 w-24 whitespace-nowrap">
+                <td class="py-4 px-3 text-center border-l border-gray-200 min-w-[100px] whitespace-nowrap">
                     <div class="font-bold text-base ${remainingOnClient > 0 ? 'text-amber-700 hover:text-amber-800' : 'text-gray-700 hover:text-gray-800'} transition-colors duration-200">${remainingOnClient.toLocaleString()}</div>
                 </td>
-                <td class="py-4 px-4 text-center border-l border-gray-200 w-24 whitespace-nowrap">
+                <td class="py-4 px-3 text-center border-l border-gray-200 min-w-[100px] whitespace-nowrap">
                     <div class="font-bold text-base text-red-600 hover:text-red-700 transition-colors duration-200">${clientData.totalExpenses.toLocaleString()}</div>
                 </td>
-                <td class="py-4 px-4 text-center border-l border-gray-200 w-24 whitespace-nowrap">
+                <td class="py-4 px-3 text-center border-l border-gray-200 min-w-[100px] whitespace-nowrap">
                     <div class="font-bold text-base text-green-700 hover:text-green-800 transition-colors duration-200">${profits.toLocaleString()}</div>
                 </td>
             </tr>

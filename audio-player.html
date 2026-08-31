@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Audio Player</title>
+</head>
+<body>
+<script>
+    const { ipcRenderer } = require('electron');
+
+    let queue = [];
+    let playing = false;
+
+    const audio = new Audio();
+
+    function next() {
+        try {
+            const src = queue.shift();
+            if (!src) {
+                playing = false;
+                return;
+            }
+            playing = true;
+            audio.src = src;
+            try { audio.currentTime = 0; } catch (_) { }
+            audio.play().catch(() => {
+                playing = false;
+                next();
+            });
+        } catch (e) {
+            playing = false;
+        }
+    }
+
+    audio.addEventListener('ended', () => {
+        playing = false;
+        next();
+    });
+
+    audio.addEventListener('error', () => {
+        playing = false;
+        next();
+    });
+
+    ipcRenderer.on('enqueue-notification-audio', (_event, src) => {
+        try {
+            if (!src || typeof src !== 'string') return;
+            const clean = src.trim();
+            if (!clean) return;
+            queue.push(clean);
+            if (!playing) next();
+        } catch (_) { }
+    });
+</script>
+</body>
+</html>

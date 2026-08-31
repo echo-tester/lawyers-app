@@ -522,7 +522,7 @@ function addClient(clientData) {
         if (!isLicensed) {
             try {
                 const count = await getCount('clients');
-                const LIMIT_CLIENTS = 20;
+                const LIMIT_CLIENTS = 30;
                 if ((Number(count) || 0) >= LIMIT_CLIENTS) {
                     try {
                         if (typeof window !== 'undefined' && typeof window.__LAWYER_SHOW_ACTIVATION_OVERLAY === 'function') {

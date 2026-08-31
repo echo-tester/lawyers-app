@@ -84,7 +84,7 @@ function displayExpertSessionForm(sessionId = null) {
                             <div>
                                 <div class="flex items-stretch">
                                     <label for="session-date" class="px-3 py-2 border-2 border-gray-300 bg-gray-100 text-sm font-bold text-gray-700 shrink-0 w-28 md:w-32 text-right rounded-r-lg">تاريخ الجلسة</label>
-                                    <input type="text" id="session-date" name="sessionDate" value="${sessionData.sessionDate || ''}" placeholder="مثال: 20/12/2025" class="flex-1 px-4 py-3 text-base bg-white border-2 border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-right -mr-px font-bold">
+                                    <input type="text" id="session-date" name="sessionDate" value="${sessionData.sessionDate || ''}" placeholder="مثال: 29/9/2026" class="flex-1 px-4 py-3 text-base bg-white border-2 border-gray-300 rounded-l-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-right -mr-px font-bold">
                                 </div>
                             </div>
                             

@@ -263,7 +263,7 @@ async function displaySessionForm(sessionId = null, sessionData = null) {
                         <label for="session-date" class="px-3 py-2 sm:py-3 border-2 border-gray-400 bg-gray-100 text-sm font-bold text-gray-700 shrink-0 w-full sm:w-32 lg:w-36 text-right rounded-t-lg sm:rounded-r-lg sm:rounded-t-lg">
                             <i class="ri-calendar-line text-blue-600 ml-2"></i>تاريخ الجلسة
                         </label>
-                        <input type="text" id="session-date" name="sessionDate" value="${currentSessionData.sessionDate || ''}" placeholder="مثال: 15/12/2025" required class="flex-1 px-3 py-2 sm:py-3 bg-white border-2 border-gray-400 border-t-0 sm:border-t-2 sm:border-r-0 rounded-b-lg sm:rounded-l-lg sm:rounded-b-lg focus:ring-0 focus:border-blue-600 text-right font-semibold text-gray-800">
+                        <input type="text" id="session-date" name="sessionDate" value="${currentSessionData.sessionDate || ''}" placeholder="مثال: 29/9/2026" required class="flex-1 px-3 py-2 sm:py-3 bg-white border-2 border-gray-400 border-t-0 sm:border-t-2 sm:border-r-0 rounded-b-lg sm:rounded-l-lg sm:rounded-b-lg focus:ring-0 focus:border-blue-600 text-right font-semibold text-gray-800">
                     </div>
                     
                     <!-- الرول -->
@@ -287,7 +287,7 @@ async function displaySessionForm(sessionId = null, sessionData = null) {
                         <label for="inventory-year" class="px-3 py-2 sm:py-3 border-2 border-gray-400 bg-gray-100 text-sm font-bold text-gray-700 shrink-0 w-full sm:w-32 lg:w-36 text-right rounded-t-lg sm:rounded-r-lg sm:rounded-t-lg">
                             <i class="ri-calendar-2-line text-orange-600 ml-2"></i>سنة الحصر
                         </label>
-                        <input type="text" id="inventory-year" name="inventoryYear" value="${currentSessionData.inventoryYear || ''}" placeholder="مثال: 2025" class="flex-1 px-3 py-2 sm:py-3 bg-white border-2 border-gray-400 border-t-0 sm:border-t-2 sm:border-r-0 rounded-b-lg sm:rounded-l-lg sm:rounded-b-lg placeholder-gray-400 focus:ring-0 focus:border-blue-600 text-right font-semibold text-gray-800">
+                        <input type="text" id="inventory-year" name="inventoryYear" value="${currentSessionData.inventoryYear || ''}" placeholder="مثال: 2026" class="flex-1 px-3 py-2 sm:py-3 bg-white border-2 border-gray-400 border-t-0 sm:border-t-2 sm:border-r-0 rounded-b-lg sm:rounded-l-lg sm:rounded-b-lg placeholder-gray-400 focus:ring-0 focus:border-blue-600 text-right font-semibold text-gray-800">
                     </div>
                 </div>
                 

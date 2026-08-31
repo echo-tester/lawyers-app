@@ -863,10 +863,10 @@ class AdministrativeManager {
                     </button>
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div class="flex items-center gap-2">
-                            <button id="prev-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors">
+                            <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر التالي">
                                 <i class="ri-arrow-right-s-line text-lg"></i>
                             </button>
-                            <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors">
+                            <button id="prev-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر السابق">
                                 <i class="ri-arrow-left-s-line text-lg"></i>
                             </button>
                         </div>
@@ -1138,13 +1138,13 @@ class AdministrativeManager {
         });
 
 
-        document.getElementById('prev-month')?.addEventListener('click', () => {
+        document.getElementById('next-month')?.addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() + 1);
             this.saveState();
             this.updateContent();
         });
 
-        document.getElementById('next-month')?.addEventListener('click', () => {
+        document.getElementById('prev-month')?.addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() - 1);
             this.saveState();
             this.updateContent();
@@ -1895,7 +1895,7 @@ async function displayAdministrativeForm(workId = null) {
                             <div>
                                 <div class="flex items-stretch relative">
                                     <label for="due-date" class="flex items-center justify-center px-3 py-3 border-2 border-gray-300 bg-gray-100 text-xs md:text-sm font-bold text-gray-700 shrink-0 w-24 md:w-32 text-center rounded-r-lg">تاريخ الإنجاز</label>
-                                    <input type="text" id="due-date" class="flex-1 px-4 py-3 text-base bg-white border-2 border-gray-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 -mr-px font-bold" value="${work ? work.dueDate || '' : ''}" placeholder="مثال: 20/12/2025" required>
+                                    <input type="text" id="due-date" class="flex-1 px-4 py-3 text-base bg-white border-2 border-gray-300 rounded-l-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 -mr-px font-bold" value="${work ? work.dueDate || '' : ''}" placeholder="مثال: 29/9/2026" required>
                                 </div>
                             </div>
                             

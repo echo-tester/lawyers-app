@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lawyer-pwa-v4.0.5';
+const CACHE_NAME = 'lawyer-pwa-v4.0.7';
 const CACHE_PREFIX = 'lawyer-pwa-v';
 
 const PRECACHE_URLS = [

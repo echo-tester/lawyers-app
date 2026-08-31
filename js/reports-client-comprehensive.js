@@ -100,7 +100,7 @@ async function updateClientComprehensiveReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-2 pb-6 pl-4 pr-4 relative flex-1 overflow-y-auto" id="client-comprehensive-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-2 pb-6 pl-4 pr-4 relative flex-1 overflow-y-auto overflow-x-auto" id="client-comprehensive-content">
                     ${clientsSorted.length > 0 ? `
                         <div class="space-y-3">
                             ${clientsSorted.map(client => {

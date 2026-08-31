@@ -247,7 +247,7 @@ class SessionsCalendar {
                             <div class="flex gap-2">
                                 <input type="text" id="date-search"
                                     class="flex-1 border border-gray-300 rounded-md px-3 py-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium"
-                                    value="${this.filteredDate || ''}" placeholder="12/9/2026">
+                                    value="${this.filteredDate || ''}" placeholder="29/9/2026">
                                 <button type="button" id="date-search-btn" class="px-3 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors flex items-center justify-center" title="بحث">
                                     <i class="ri-search-line text-sm"></i>
                                 </button>
@@ -790,10 +790,10 @@ class SessionsCalendar {
                     </button>
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div class="flex items-center gap-2">
-                            <button id="prev-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors">
+                            <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر التالي">
                                 <i class="ri-arrow-right-s-line text-lg"></i>
                             </button>
-                            <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors">
+                            <button id="prev-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر السابق">
                                 <i class="ri-arrow-left-s-line text-lg"></i>
                             </button>
                         </div>
@@ -1075,13 +1075,13 @@ class SessionsCalendar {
         });
 
 
-        document.getElementById('prev-month')?.addEventListener('click', () => {
+        document.getElementById('next-month')?.addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() + 1);
             this.saveState();
             this.updateContent();
         });
 
-        document.getElementById('next-month')?.addEventListener('click', () => {
+        document.getElementById('prev-month')?.addEventListener('click', () => {
             this.currentDate.setMonth(this.currentDate.getMonth() - 1);
             this.saveState();
             this.updateContent();

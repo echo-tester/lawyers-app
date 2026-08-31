@@ -284,7 +284,7 @@ async function handleCardClick(id) {
             } catch (_) { licensed = false; }
 
             if (!licensed) {
-                const LIMIT_CLIENTS = 20;
+                const LIMIT_CLIENTS = 30;
                 let clientsCount = 0;
                 try {
                     const c = (typeof getCount === 'function') ? await getCount('clients') : 0;

@@ -659,38 +659,38 @@ function createClerkPaperCard(paper, clientData) {
                 <div class="flex-1 w-full min-w-0">
                     <div class="flex flex-col md:flex-row gap-2 md:gap-1.5 w-full md:items-start">
                         <!-- Column 1: Type & Number -->
-                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto">
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto min-w-0">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">نوع الورقة:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate" title="${paper.paperType || ''}">${paper.paperType || 'غير محدد'}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${paper.paperType || ''}">${paper.paperType || 'غير محدد'}</span>
                             </div>
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">رقم الورقة:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate" title="${paper.paperNumber || ''}">${paper.paperNumber || 'غير محدد'}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${paper.paperNumber || ''}">${paper.paperNumber || 'غير محدد'}</span>
                             </div>
                         </div>
 
                         <!-- Column 2: Receipt & Delivery -->
-                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto">
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto min-w-0">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">تاريخ الاستلام:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate">${__formatClerkPapersDateForDisplay(paper.receiptDate)}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${__formatClerkPapersDateForDisplay(paper.receiptDate)}">${__formatClerkPapersDateForDisplay(paper.receiptDate)}</span>
                             </div>
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">تاريخ التسليم:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate">${__formatClerkPapersDateForDisplay(paper.deliveryDate)}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${__formatClerkPapersDateForDisplay(paper.deliveryDate)}">${__formatClerkPapersDateForDisplay(paper.deliveryDate)}</span>
                             </div>
                         </div>
 
                         <!-- Column 3: Pen & Notes -->
-                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto">
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                        <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto min-w-0">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">محضرين:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate" title="${paper.clerkOffice || ''}">${paper.clerkOffice || 'غير محدد'}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${paper.clerkOffice || ''}">${paper.clerkOffice || 'غير محدد'}</span>
                             </div>
-                            <div class="bg-white border border-slate-200 rounded px-2 h-8 flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full">
+                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
                                 <span class="text-[11px] text-gray-700 shrink-0">ملاحظات:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate" title="${paper.notes || ''}">${paper.notes || '—'}</span>
+                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${paper.notes || ''}">${paper.notes || '—'}</span>
                             </div>
                         </div>
                     </div>

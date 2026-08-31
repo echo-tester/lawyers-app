@@ -125,7 +125,7 @@ async function updateExpertSessionsReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="expert-sessions-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="expert-sessions-report-content">
                     ${generateExpertSessionsReportHTML(__reportsExpertCurrentSessions, __reportsExpertCurrentClients)}
                 </div>
             </div>
@@ -179,13 +179,14 @@ function generateExpertSessionsReportHTML(expertSessions, clients, sortOrder = '
         }
     });
 
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
     let tableRows = '';
     sessionsData.forEach((session, i) => {
 
         const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-pink-50 to-rose-50' : 'bg-white';
 
 
-        const client = clients.find(c => c.id === session.clientId);
+        const client = session.clientId ? clientMap.get(session.clientId) : null;
         const clientName = client ? client.name : 'غير محدد';
 
 
@@ -193,48 +194,48 @@ function generateExpertSessionsReportHTML(expertSessions, clients, sortOrder = '
 
         tableRows += `
             <tr class="report-record ${rowClass} border-b border-gray-200 hover:bg-gradient-to-l hover:from-pink-100 hover:to-rose-100 transition-all duration-300 hover:shadow-sm">
-                <td class="py-4 px-6 text-center border-l border-gray-200">
-                    <div class="font-bold text-lg text-gray-800 hover:text-pink-700 transition-colors duration-200 truncate" title="${clientName}">${clientName}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 min-w-[180px]">
+                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200 truncate min-w-0" title="${clientName}">${clientName}</div>
                 </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200 whitespace-nowrap" style="width: 140px;">
-                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200">${session.outgoingNumber || 'غير محدد'}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[130px]" style="width: 130px;">
+                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200 truncate min-w-0" title="${session.outgoingNumber || 'غير محدد'}">${session.outgoingNumber || 'غير محدد'}</div>
                 </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200 whitespace-nowrap" style="width: 140px;">
-                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200">${session.incomingNumber || 'غير محدد'}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[130px]" style="width: 130px;">
+                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200 truncate min-w-0" title="${session.incomingNumber || 'غير محدد'}">${session.incomingNumber || 'غير محدد'}</div>
                 </td>
-                <td class="py-4 px-6 text-center whitespace-nowrap" style="width: 140px;">
-                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200">${sessionDate}</div>
+                <td class="py-4 px-4 text-center whitespace-nowrap min-w-[130px]" style="width: 130px;">
+                    <div class="font-bold text-base text-gray-800 hover:text-pink-700 transition-colors duration-200 whitespace-nowrap" title="${sessionDate}">${sessionDate}</div>
                 </td>
             </tr>
         `;
     });
 
     return `
-        <div class="expert-sessions-report-container" style="height: 100%; overflow-y: auto; position: relative;">
+        <div class="expert-sessions-report-container" style="height: 100%; overflow-y: auto; overflow-x: auto; position: relative;">
             <!-- جدول جلسات الخبراء -->
-            <div class="bg-white rounded-2xl shadow-xl border border-gray-100">
-                <table class="w-full border-separate" style="border-spacing: 0;">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-x-auto">
+                <table class="w-full border-separate min-w-[600px]" style="border-spacing: 0; table-layout: auto;">
                     <thead style="position: sticky; top: 0; z-index: 20;">
                         <tr class="text-white shadow-lg" style="background-color: #db2777 !important;">
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899; min-width: 180px;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-user-line text-sm"></i>
                                     <span>اسم الموكل</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; width: 130px; min-width: 130px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-file-upload-line text-sm"></i>
                                     <span>رقم الصادر</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; border-color: #ec4899 !important; white-space: nowrap; width: 130px; min-width: 130px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #ec4899;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-file-download-line text-sm"></i>
                                     <span>رقم الوارد</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; white-space: nowrap; width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #db2777 !important; color: white !important; white-space: nowrap; width: 130px; min-width: 130px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-calendar-line text-sm"></i>
                                     <span>تاريخ الجلسة</span>
@@ -292,9 +293,12 @@ function filterExpertSessionsReport(searchTerm, expertSessions, clients) {
         return;
     }
 
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
+    const searchLower = searchTerm.toLowerCase();
+
     const filteredSessions = expertSessions.filter(session => {
 
-        const client = clients.find(c => c.id === session.clientId);
+        const client = session.clientId ? clientMap.get(session.clientId) : null;
         const clientName = client ? client.name : '';
 
         const sessionDate = session.sessionDate || '';

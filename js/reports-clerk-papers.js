@@ -126,7 +126,7 @@ async function updateClerkPapersReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto" id="clerk-papers-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="clerk-papers-report-content">
                     ${generateClerkPapersReportHTML(__reportsClerkCurrentPapers, __reportsClerkCurrentClients)}
                 </div>
             </div>
@@ -204,24 +204,18 @@ function generateClerkPapersReportHTML(clerkPapers, clients, sortOrder = 'desc',
         return sortOrder === 'desc' ? (keyB - keyA) : (keyA - keyB);
     });
 
-    let tableRows = '';
-    filteredPapers.forEach((paper, i) => {
-
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
+    
+    const buildRowHtml = (paper, i) => {
         const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-green-50 to-emerald-50' : 'bg-white';
-
-
-        const client = paper.clientId ? clients.find(c => c.id === paper.clientId) : null;
+        const client = paper.clientId ? clientMap.get(paper.clientId) : null;
         const clientName = client ? client.name : 'غير محدد';
-
-
         const paperDate = __formatReportsClerkPapersDateForDisplay(paper.paperDate);
         const receiptDate = __formatReportsClerkPapersDateForDisplay(paper.receiptDate);
         const deliveryDate = __formatReportsClerkPapersDateForDisplay(paper.deliveryDate);
 
-
         let typeIcon = 'ri-file-paper-line';
         let typeColor = 'text-green-600';
-
         switch (paper.paperType) {
             case 'إعلان':
                 typeIcon = 'ri-notification-line';
@@ -249,52 +243,62 @@ function generateClerkPapersReportHTML(clerkPapers, clients, sortOrder = 'desc',
                 typeColor = 'text-green-600';
         }
 
-        tableRows += `
+        return `
             <tr class="report-record ${rowClass} border-b border-gray-200 hover:bg-gradient-to-l hover:from-green-100 hover:to-emerald-100 transition-all duration-300 hover:shadow-sm">
-                <td class="py-4 px-6 text-center border-l border-gray-200">
-                    <div class="font-bold text-base text-gray-800 hover:text-green-700 transition-colors duration-200 truncate" title="${clientName}">${clientName}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 min-w-[180px]">
+                    <div class="font-bold text-base text-gray-800 hover:text-green-700 transition-colors duration-200 truncate min-w-0" title="${clientName}">${clientName}</div>
                 </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200 whitespace-nowrap" style="width: 160px;">
-                    <div class="flex items-center justify-center gap-2 font-medium text-sm ${typeColor} whitespace-nowrap">
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[140px]" style="width: 140px;">
+                    <div class="flex items-center justify-center gap-2 font-medium text-sm ${typeColor} whitespace-nowrap min-w-0" title="${paper.paperType || '-'}">
                         <i class="${typeIcon}"></i>
-                        <span>${paper.paperType || '-'}</span>
+                        <span class="truncate">${paper.paperType || '-'}</span>
                     </div>
                 </td>
-                <td class="py-4 px-6 text-center whitespace-nowrap" style="width: 140px;">
-                    <div class="font-bold text-sm text-gray-700 whitespace-nowrap">${paper.paperNumber || '-'}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[130px]" style="width: 130px;">
+                    <div class="font-bold text-sm text-gray-700 whitespace-nowrap truncate min-w-0" title="${paper.paperNumber || '-'}">${paper.paperNumber || '-'}</div>
                 </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200 whitespace-nowrap" style="width: 120px;">
-                    <div class="font-medium text-sm text-gray-700">${deliveryDate}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[120px]" style="width: 120px;">
+                    <div class="font-medium text-sm text-gray-700 whitespace-nowrap" title="${deliveryDate}">${deliveryDate}</div>
                 </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200 whitespace-nowrap" style="width: 120px;">
-                    <div class="font-medium text-sm text-gray-700">${receiptDate}</div>
+                <td class="py-4 px-4 text-center border-l border-gray-200 whitespace-nowrap min-w-[120px]" style="width: 120px;">
+                    <div class="font-medium text-sm text-gray-700 whitespace-nowrap" title="${receiptDate}">${receiptDate}</div>
                 </td>
             </tr>
         `;
-    });
+    };
 
+    const initialBatchSize = 100;
+    const initialRows = filteredPapers.slice(0, initialBatchSize).map((p, i) => buildRowHtml(p, i)).join('');
+
+    if (filteredPapers.length > initialBatchSize) {
+        let currentIndex = initialBatchSize;
+        const appendNextChunk = () => {
+            const tbody = document.getElementById('clerk-papers-table-body');
+            if (!tbody) return;
+            const end = Math.min(currentIndex + 100, filteredPapers.length);
+            let chunkHtml = '';
+            for (let i = currentIndex; i < end; i++) {
+                chunkHtml += buildRowHtml(filteredPapers[i], i);
+            }
+            tbody.insertAdjacentHTML('beforeend', chunkHtml);
+            currentIndex = end;
+            if (currentIndex < filteredPapers.length) {
+                __reportsClerkChunkTimer = requestAnimationFrame(appendNextChunk);
+            }
+        };
+        __reportsClerkChunkTimer = requestAnimationFrame(appendNextChunk);
+    }
 
     const totalPapers = __reportsClerkAllPapers.length;
-
-
-    const totalNotifications = __reportsClerkAllPapers.filter(paper =>
-        norm(paper.paperType).includes('اعلان')
-    ).length;
-
-
-    const totalWarnings = __reportsClerkAllPapers.filter(paper =>
-        norm(paper.paperType).includes('انذار')
-    ).length;
-
-
+    const totalNotifications = __reportsClerkAllPapers.filter(paper => norm(paper.paperType).includes('اعلان')).length;
+    const totalWarnings = __reportsClerkAllPapers.filter(paper => norm(paper.paperType).includes('انذار')).length;
     const otherPapers = __reportsClerkAllPapers.filter(paper => {
         const tp = norm(paper.paperType);
         return !tp.includes('اعلان') && !tp.includes('انذار');
     }).length;
 
     return `
-        <div class="clerk-papers-report-container" style="height: 100%; overflow-y: auto; position: relative;">
-            <!-- إحصائيات سريعة -->
+        <div class="clerk-papers-report-container" style="height: 100%; overflow-y: auto; overflow-x: auto; position: relative;">
             <style>
                 @media (max-width:768px){
                     #report-content .clerk-papers-stats-grid{
@@ -318,79 +322,75 @@ function generateClerkPapersReportHTML(clerkPapers, clients, sortOrder = 'desc',
                             <i class="ri-file-paper-line text-white text-lg"></i>
                         </div>
                         <div>
-                            <p class="text-sm text-green-600 font-medium">إجمالي الأوراق</p>
-                            <p class="text-lg font-bold text-green-700">${totalPapers}</p>
+                            <div class="text-xs text-green-700 font-bold">إجمالي الأوراق</div>
+                            <div class="text-lg font-extrabold text-green-900">${totalPapers}</div>
                         </div>
                     </div>
                 </div>
-                
                 <div onclick="filterClerkPapersByType('إعلان')" class="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl border-2 border-blue-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-type="إعلان">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
                             <i class="ri-notification-line text-white text-lg"></i>
                         </div>
                         <div>
-                            <p class="text-sm text-blue-600 font-medium">إجمالي الإعلانات</p>
-                            <p class="text-lg font-bold text-blue-700">${totalNotifications}</p>
+                            <div class="text-xs text-blue-700 font-bold">الإعلانات</div>
+                            <div class="text-lg font-extrabold text-blue-900">${totalNotifications}</div>
                         </div>
                     </div>
                 </div>
-                
                 <div onclick="filterClerkPapersByType('إنذار')" class="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-xl border-2 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-type="إنذار">
                     <div class="flex items-center gap-3">
                         <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
                             <i class="ri-alarm-warning-line text-white text-lg"></i>
                         </div>
                         <div>
-                            <p class="text-sm text-red-600 font-medium">إجمالي الإنذارات</p>
-                            <p class="text-lg font-bold text-red-700">${totalWarnings}</p>
+                            <div class="text-xs text-red-700 font-bold">الإنذارات</div>
+                            <div class="text-lg font-extrabold text-red-900">${totalWarnings}</div>
                         </div>
                     </div>
                 </div>
-                
-                <div onclick="filterClerkPapersByType('other')" class="bg-gradient-to-br from-gray-50 to-gray-100 p-3 rounded-xl border-2 border-gray-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-type="other">
+                <div onclick="filterClerkPapersByType('other')" class="bg-gradient-to-br from-purple-50 to-purple-100 p-3 rounded-xl border-2 border-purple-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-type="other">
                     <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-gray-600 rounded-full flex items-center justify-center">
-                            <i class="ri-file-list-line text-white text-lg"></i>
+                        <div class="w-10 h-10 bg-purple-600 rounded-full flex items-center justify-center">
+                            <i class="ri-folder-paper-line text-white text-lg"></i>
                         </div>
                         <div>
-                            <p class="text-sm text-gray-600 font-medium">أوراق أخرى</p>
-                            <p class="text-lg font-bold text-gray-700">${otherPapers}</p>
+                            <div class="text-xs text-purple-700 font-bold">أوراق أخرى</div>
+                            <div class="text-lg font-extrabold text-purple-900">${otherPapers}</div>
                         </div>
                     </div>
                 </div>
             </div>
             
-            <!-- جدول أوراق المحضرين -->
-            <div class="bg-white rounded-2xl shadow-xl border border-gray-100">
-                <table class="w-full border-separate" style="border-spacing: 0;">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-x-auto">
+                <table class="w-full border-separate min-w-[650px]" style="border-spacing: 0; table-layout: auto;">
                     <thead style="position: sticky; top: 0; z-index: 20;">
                         <tr class="text-white shadow-lg" style="background-color: #059669 !important;">
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857; min-width: 180px;">
                                 <div class="flex items-center justify-center gap-2">
-                                    <i class="ri-user-heart-line text-sm"></i>
-                                    <span>الموكل</span>
+                                    <i class="ri-user-line text-sm"></i>
+                                    <span>اسم الموكل</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 160px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 140px; min-width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
                                 <div class="flex items-center justify-center gap-2">
-                                    <i class="ri-file-paper-line text-sm"></i>
+                                    <i class="ri-file-text-line text-sm"></i>
                                     <span>نوع الورقة</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; white-space: nowrap; width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; white-space: nowrap; width: 130px; min-width: 130px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-hashtag text-sm"></i>
                                     <span>رقم الورقة</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 120px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 120px; min-width: 120px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-calendar-event-line text-sm"></i>
                                     <span>تاريخ التسليم</span>
                                 </div>
                             </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 120px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
+                            <th style="position: sticky; top: 0; z-index: 20; background-color: #059669 !important; color: white !important; border-color: #047857 !important; white-space: nowrap; width: 120px; min-width: 120px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #047857;">
                                 <div class="flex items-center justify-center gap-2">
                                     <i class="ri-calendar-check-line text-sm"></i>
                                     <span>تاريخ الاستلام</span>
@@ -399,7 +399,7 @@ function generateClerkPapersReportHTML(clerkPapers, clients, sortOrder = 'desc',
                         </tr>
                     </thead>
                     <tbody id="clerk-papers-table-body">
-                        ${tableRows}
+                        ${initialRows}
                     </tbody>
                 </table>
             </div>
@@ -407,159 +407,53 @@ function generateClerkPapersReportHTML(clerkPapers, clients, sortOrder = 'desc',
     `;
 }
 
-
 let currentClerkPapersSortOrder = 'desc';
 let currentClerkPapersTypeFilter = 'all';
 
-
 async function toggleClerkPapersSort() {
     try {
-
         currentClerkPapersSortOrder = currentClerkPapersSortOrder === 'desc' ? 'asc' : 'desc';
-
-
         const { papers: clerkPapers, clients } = __getReportsClerkPapersDataForAction();
-
-
         const sortButton = document.querySelector('button[onclick="toggleClerkPapersSort()"]');
-        const icon = sortButton.querySelector('i');
-        const text = sortButton.querySelector('span');
-
-        icon.className = currentClerkPapersSortOrder === 'desc' ? 'ri-time-line' : 'ri-history-line';
-        text.textContent = currentClerkPapersSortOrder === 'desc' ? 'الأحدث' : 'الأقدم';
-
-
+        if (sortButton) {
+            const icon = sortButton.querySelector('i');
+            const text = sortButton.querySelector('span');
+            if (icon) icon.className = currentClerkPapersSortOrder === 'desc' ? 'ri-time-line' : 'ri-history-line';
+            if (text) text.textContent = currentClerkPapersSortOrder === 'desc' ? 'الأحدث' : 'الأقدم';
+        }
         const reportContent = document.getElementById('clerk-papers-report-content');
-        reportContent.innerHTML = generateClerkPapersReportHTML(clerkPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
-
+        if (reportContent) {
+            reportContent.innerHTML = generateClerkPapersReportHTML(clerkPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
+        }
     } catch (error) {
         console.error('Error sorting clerk papers report:', error);
-        showToast('حدث خطأ أثناء فرز التقرير', 'error');
     }
 }
-
-
-async function filterClerkPapersByType(type) {
-    try {
-
-        currentClerkPapersTypeFilter = type;
-
-
-        const clerkPapers = Array.isArray(__reportsClerkAllPapers) ? __reportsClerkAllPapers : [];
-        const clients = Array.isArray(__reportsClerkAllClients) ? __reportsClerkAllClients : [];
-
-
-        document.querySelectorAll('.clerk-papers-stats-grid > div').forEach(card => {
-            const cardType = card.getAttribute('data-type');
-            if (cardType === type) {
-                card.style.borderWidth = '3px';
-                card.style.transform = 'scale(1.05)';
-            } else {
-                card.style.borderWidth = '2px';
-                card.style.transform = 'scale(1)';
-            }
-        });
-
-
-        let filterType = 'all';
-        if (type === 'إعلان' || type === 'إنذار') {
-            filterType = type;
-        } else if (type === 'other') {
-            filterType = 'other';
-        }
-
-
-        let filtered = clerkPapers;
-        const norm = (t) => String(t || '').replace(/[إأآ]/g, 'ا').toLowerCase();
-        if (filterType === 'إعلان') {
-            filtered = clerkPapers.filter(paper => norm(paper.paperType).includes('اعلان'));
-        } else if (filterType === 'إنذار') {
-            filtered = clerkPapers.filter(paper => norm(paper.paperType).includes('انذار'));
-        } else if (filterType === 'other') {
-            filtered = clerkPapers.filter(paper => {
-                const tp = norm(paper.paperType);
-                return tp && !tp.includes('اعلان') && !tp.includes('انذار');
-            });
-        }
-
-        __reportsClerkCurrentPapers = filtered;
-        __reportsClerkCurrentClients = clients;
-        const reportContent = document.getElementById('clerk-papers-report-content');
-        reportContent.innerHTML = generateClerkPapersReportHTML(filtered, clients, currentClerkPapersSortOrder, filterType);
-
-    } catch (error) {
-        console.error('Error filtering clerk papers by type:', error);
-        showToast('حدث خطأ أثناء التصفية', 'error');
-    }
-}
-
-
-async function toggleClerkPapersFilter() {
-    try {
-        const { papers: clerkPapers, clients } = __getReportsClerkPapersDataForAction();
-
-        const colorClasses = {
-            green: 'bg-green-100 text-green-700 hover:bg-green-200',
-            blue: 'bg-blue-100 text-blue-700 hover:bg-blue-200',
-            red: 'bg-red-100 text-red-700 hover:bg-red-200',
-            orange: 'bg-orange-100 text-orange-700 hover:bg-orange-200',
-            purple: 'bg-purple-100 text-purple-700 hover:bg-purple-200'
-        };
-
-        filterButton.className = `flex items-center gap-2 px-4 py-2 ${colorClasses[currentState.color]} rounded-lg transition-colors`;
-
-
-        const reportContent = document.getElementById('clerk-papers-report-content');
-        reportContent.innerHTML = generateClerkPapersReportHTML(clerkPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
-
-    } catch (error) {
-        console.error('Error toggling clerk papers filter:', error);
-        showToast('حدث خطأ أثناء تغيير الفرز', 'error');
-    }
-}
-
 
 function filterClerkPapersReport(searchTerm, clerkPapers, clients) {
-    if (!searchTerm.trim()) {
-
+    if (!searchTerm || !searchTerm.trim()) {
         const reportContent = document.getElementById('clerk-papers-report-content');
-        reportContent.innerHTML = generateClerkPapersReportHTML(clerkPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
-        __reportsClerkCurrentPapers = Array.isArray(clerkPapers) ? clerkPapers : [];
-        __reportsClerkCurrentClients = Array.isArray(clients) ? clients : [];
+        if (reportContent) reportContent.innerHTML = generateClerkPapersReportHTML(clerkPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
         return;
     }
-
-
-    const filteredPapers = clerkPapers.filter(paper => {
-        const client = paper.clientId ? clients.find(c => c.id === paper.clientId) : null;
-        const clientName = client ? client.name.toLowerCase() : '';
-        const paperType = paper.paperType ? paper.paperType.toLowerCase() : '';
-        const paperNumber = paper.paperNumber ? paper.paperNumber.toLowerCase() : '';
-        const clerkOffice = paper.clerkOffice ? paper.clerkOffice.toLowerCase() : '';
-        const notes = paper.notes ? paper.notes.toLowerCase() : '';
-
-        const searchLower = searchTerm.toLowerCase();
-
-        return clientName.includes(searchLower) ||
-            paperType.includes(searchLower) ||
-            paperNumber.includes(searchLower) ||
-            clerkOffice.includes(searchLower) ||
-            notes.includes(searchLower);
+    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
+    const searchLower = searchTerm.toLowerCase();
+    const filteredPapers = (clerkPapers || []).filter(paper => {
+        const client = paper.clientId ? clientMap.get(paper.clientId) : null;
+        const clientName = client ? String(client.name || '').toLowerCase() : '';
+        const paperType = paper.paperType ? String(paper.paperType).toLowerCase() : '';
+        const paperNumber = paper.paperNumber ? String(paper.paperNumber).toLowerCase() : '';
+        const clerkOffice = paper.clerkOffice ? String(paper.clerkOffice).toLowerCase() : '';
+        const notes = paper.notes ? String(paper.notes).toLowerCase() : '';
+        return clientName.includes(searchLower) || paperType.includes(searchLower) || paperNumber.includes(searchLower) || clerkOffice.includes(searchLower) || notes.includes(searchLower);
     });
-
     const reportContent = document.getElementById('clerk-papers-report-content');
-    __reportsClerkCurrentPapers = filteredPapers;
-    __reportsClerkCurrentClients = Array.isArray(clients) ? clients : [];
-    reportContent.innerHTML = generateClerkPapersReportHTML(filteredPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
+    if (reportContent) reportContent.innerHTML = generateClerkPapersReportHTML(filteredPapers, clients, currentClerkPapersSortOrder, currentClerkPapersTypeFilter);
 }
-
 
 async function printClerkPapersReport() {
     try {
-
         const { papers: clerkPapers, clients } = __getReportsClerkPapersDataForAction();
-
-
         let clerkPapersData = [...clerkPapers];
         const norm = (t) => String(t || '').replace(/[إأآ]/g, 'ا').toLowerCase();
         if (currentClerkPapersTypeFilter === 'إعلان') {
@@ -572,26 +466,16 @@ async function printClerkPapersReport() {
                 return tp && !tp.includes('اعلان') && !tp.includes('انذار');
             });
         }
-
-
         clerkPapersData.sort((a, b) => {
             const dateA = new Date(a.paperDate || a.createdAt);
             const dateB = new Date(b.paperDate || b.createdAt);
-
-            if (currentClerkPapersSortOrder === 'desc') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
+            return currentClerkPapersSortOrder === 'desc' ? (dateB - dateA) : (dateA - dateB);
         });
-
-
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
-
-
+        const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
         let tableRows = '';
         clerkPapersData.forEach((paper, i) => {
-            const client = paper.clientId ? clients.find(c => c.id === paper.clientId) : null;
+            const client = paper.clientId ? clientMap.get(paper.clientId) : null;
             const clientName = client ? client.name : 'غير محدد';
             const paperType = paper.paperType || 'غير محدد';
             const paperNumber = paper.paperNumber || '-';

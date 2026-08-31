@@ -562,7 +562,7 @@
         try {
             if (typeof window !== 'undefined' && window.APP_CURRENT_VERSION) return String(window.APP_CURRENT_VERSION);
         } catch (_) { }
-    return '4.0.5';
+    return '4.0.7';
     }
 
     /** إزالة رقم إصدار المتصفح (مثل 140 / كروميوم) من اسم الجهاز */
@@ -2443,8 +2443,8 @@
                 <i class="ri-key-2-line text-white text-2xl"></i>
             </div>
             <h3 class="text-xl font-bold text-gray-800 text-center">وصلت للحد الأقصى من الاستخدام</h3>
-            <p class="text-gray-600 text-center text-sm">
-                وصلت للحد الأقصى (20 موكل). يرجى تفعيل النسخة للمتابعة.
+            <p class="text-gray-600 text-center text-sm leading-relaxed">
+                لقد انتهت الفترة التجريبية للبرنامج. يرجى تفعيل النسخة للمتابعة والتمتع بكافة المميزات.
             </p>
             <div class="w-full space-y-3">
                 <input type="text" id="overlay-license-input" placeholder="اكتب كود التفعيل هنا" 

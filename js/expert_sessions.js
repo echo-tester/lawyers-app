@@ -658,36 +658,36 @@ function createExpertSessionCard(session, clientData) {
             </div>
 
             <!-- Desktop layout -->
-            <div class="hidden md:flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center">
+            <div class="hidden md:flex items-center justify-between min-w-0">
+                <div class="flex items-center gap-3 min-w-0 flex-1">
+                    <div class="w-8 h-8 bg-purple-100 text-purple-600 rounded-full flex items-center justify-center shrink-0">
                         <i class="ri-team-line text-sm"></i>
                     </div>
-                    <div class="space-y-1">
-                        <div class="grid grid-cols-2 gap-2 items-stretch">
-                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;">
-                                <span class="text-xs text-gray-600">النوع</span>
-                                <span class="text-sm font-bold text-gray-900">${session.sessionType || 'غير محدد'}</span>
+                    <div class="space-y-1 min-w-0 flex-1">
+                        <div class="grid grid-cols-2 gap-2 items-stretch min-w-0">
+                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;" class="min-w-0">
+                                <span class="text-xs text-gray-600 shrink-0">النوع</span>
+                                <span class="text-sm font-bold text-gray-900 truncate min-w-0" title="${session.sessionType || ''}">${session.sessionType || 'غير محدد'}</span>
                             </div>
-                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;">
-                                <span class="text-xs text-gray-600">الحالة</span>
-                                <span class="text-sm font-bold text-gray-900">${session.status || 'غير محدد'}</span>
-                            </div>
-                        </div>
-                        <div class="grid grid-cols-2 gap-2 items-stretch">
-                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;">
-                                <span class="text-xs text-gray-600">التاريخ</span>
-                                <span class="text-sm font-bold text-gray-900">${__formatExpertSessionDateForDisplay(session.sessionDate)}</span>
-                            </div>
-                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;">
-                                <span class="text-xs text-gray-600">الوقت</span>
-                                <span class="text-sm font-bold text-gray-900">${session.sessionTime || 'غير محدد'}</span>
+                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;" class="min-w-0">
+                                <span class="text-xs text-gray-600 shrink-0">الحالة</span>
+                                <span class="text-sm font-bold text-gray-900 truncate min-w-0" title="${session.status || ''}">${session.status || 'غير محدد'}</span>
                             </div>
                         </div>
-                        <div class="grid grid-cols-1 gap-2 items-stretch">
-                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;">
-                                <span class="text-xs text-gray-600">رقم القضية</span>
-                                <span class="text-sm font-bold text-gray-900">${session.caseNumber ? session.caseNumber.replace('/', ' لسنه ') : 'غير محدد'}</span>
+                        <div class="grid grid-cols-2 gap-2 items-stretch min-w-0">
+                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;" class="min-w-0">
+                                <span class="text-xs text-gray-600 shrink-0">التاريخ</span>
+                                <span class="text-sm font-bold text-gray-900 truncate min-w-0" title="${__formatExpertSessionDateForDisplay(session.sessionDate)}">${__formatExpertSessionDateForDisplay(session.sessionDate)}</span>
+                            </div>
+                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;" class="min-w-0">
+                                <span class="text-xs text-gray-600 shrink-0">الوقت</span>
+                                <span class="text-sm font-bold text-gray-900 truncate min-w-0" title="${session.sessionTime || ''}">${session.sessionTime || 'غير محدد'}</span>
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2 items-stretch min-w-0">
+                            <div style="background-color: #f3f4f6; border: 1px solid #d1d5db; border-radius: 4px; padding: 4px 8px; min-height: 32px; display: flex; align-items: center; justify-content: center; gap: 4px; text-align: center;" class="min-w-0">
+                                <span class="text-xs text-gray-600 shrink-0">رقم القضية</span>
+                                <span class="text-sm font-bold text-gray-900 truncate min-w-0" title="${session.caseNumber ? session.caseNumber.replace('/', ' لسنه ') : ''}">${session.caseNumber ? session.caseNumber.replace('/', ' لسنه ') : 'غير محدد'}</span>
                             </div>
                         </div>
                     </div>
