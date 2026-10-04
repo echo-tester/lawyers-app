@@ -88,9 +88,17 @@
       #modal-content #report-content button { padding: 6px 10px !important; height: 32px !important; font-size: 12px !important; border-radius: 9999px !important; }
       /* Grids collapse to single column */
       #modal-content #report-content .grid { grid-template-columns: 1fr !important; gap: 8px !important; }
-      /* Tables: horizontal scroll and compact cells */
-      #modal-content #report-content table { display: block; width: 100% !important; overflow-x: auto !important; border-collapse: collapse !important; }
-      #modal-content #report-content thead { position: sticky; top: 0; background: #fff; z-index: 1; }
+      /* Tables: smooth horizontal scroll on wrapper and compact cells */
+      #modal-content #report-content .overflow-x-auto {
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        touch-action: pan-x pan-y !important;
+        overscroll-behavior-x: contain !important;
+      }
+      #modal-content #report-content table {
+        display: table !important;
+      }
+      #modal-content #report-content thead { position: sticky; top: 0; z-index: 20; }
       #modal-content #report-content th,
       #modal-content #report-content td { padding: 6px 8px !important; font-size: 12px !important; white-space: nowrap; }
       /* Cards spacing */
@@ -177,15 +185,16 @@
   <script src="js/expert_sessions.js"></script>
   
   
-  <script src="js/reports-main.js"></script>
-  <script src="js/reports-cases.js"></script>
+  <script src="js/reports-main.js?v=16"></script>
+  <script src="js/reports-cases.js?v=4"></script>
+  <script src="js/reports-sessions-agenda.js"></script>
   <script src="js/reports-accounts.js"></script>
-  <script src="js/reports-administrative.js"></script>
+  <script src="js/reports-administrative.js?v=4"></script>
   <script src="js/reports-clerk-papers.js"></script>
   <script src="js/reports-archive.js"></script>
   <script src="js/reports-expert-sessions.js"></script>
   <script src="js/reports-client-comprehensive.js"></script>
-  <script src="js/reports-poa.js"></script>
+  <script src="js/reports-poa.js?v=5"></script>
 
   <script>
     document.addEventListener('DOMContentLoaded', async function () {
@@ -201,7 +210,7 @@
         const backToMainBtn = document.getElementById('back-to-main');
         if (backToMainBtn) {
           backToMainBtn.addEventListener('click', function () {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
           });
         }
 
@@ -213,7 +222,7 @@
             if (inForm && typeof navigateBack === 'function') {
               navigateBack();
             } else {
-              window.location.href = 'index.html';
+              window.location.replace('index.html');
             }
           });
         }

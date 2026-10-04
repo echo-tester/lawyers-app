@@ -51,9 +51,15 @@ class SessionsCalendar {
             await this.loadAllSessions();
             this.restoreState();
 
-            // افتراضيًا: حدد تاريخ اليوم عند فتح التقويم (إلا لو فيه فلترة محفوظة)
+            // تذكر تاريخ البحث عند الفتح أو الرجوع لتاريخ اليوم إذا لم يوجد بحث محفوظ
             try {
-                if (!this.filteredDate && !this.filterType) {
+                if (this.filteredDate) {
+                    const parts = String(this.filteredDate).split('-');
+                    if (parts.length === 3) {
+                        this.currentDate = new Date(parseInt(parts[0], 10), parseInt(parts[1], 10) - 1, 1);
+                    }
+                    this.selectedDate = this.filteredDate;
+                } else if (!this.filterType) {
                     const t = this.getNow();
                     const yyyy = t.getFullYear();
                     const mm = String(t.getMonth() + 1).padStart(2, '0');
@@ -680,74 +686,7 @@ class SessionsCalendar {
 
 
     getNow() {
-        try {
-            const raw = localStorage.getItem('onlineTimeOffsetMs');
-            const offset = raw ? parseInt(raw, 10) : 0;
-            if (!isNaN(offset)) {
-                return new Date(Date.now() + offset);
-            }
-        } catch (e) { }
         return new Date();
-    }
-
-    async syncTimeOffset() {
-
-
-        const endpoints = [
-            'http://worldclockapi.com/api/json/utc/now',
-            'https://timeapi.io/api/Time/current/zone?timeZone=UTC',
-            'https://worldtimeapi.org/api/timezone/UTC',
-            'https://api.github.com',
-            'https://httpbin.org/get'
-        ];
-        for (const url of endpoints) {
-            try {
-                const t0 = Date.now();
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const res = await fetch(url, {
-                    cache: 'no-store',
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                const t1 = Date.now();
-
-                let serverMs = null;
-                try {
-                    const ct = res.headers.get('date');
-                    if (ct) serverMs = new Date(ct).getTime();
-                } catch (e) { }
-                if (!serverMs && !url.includes('github.com') && !url.includes('httpbin.org')) {
-                    try {
-                        const text = await res.text();
-                        const data = JSON.parse(text);
-                        if (data.currentDateTime) serverMs = new Date(data.currentDateTime).getTime();
-                        else if (data.utc_datetime) serverMs = new Date(data.utc_datetime).getTime();
-                        else if (data.dateTime) serverMs = new Date(data.dateTime).getTime();
-                        else if (data.datetime) serverMs = new Date(data.datetime).getTime();
-                    } catch (e) { }
-                }
-                if (serverMs) {
-
-                    const rtt = (t1 - t0) / 2;
-                    const approxNow = serverMs + rtt;
-                    const localNow = Date.now();
-                    const offset = approxNow - localNow;
-                    try { localStorage.setItem('onlineTimeOffsetMs', String(offset)); } catch (e) { }
-                    return offset;
-                }
-            } catch (e) {
-
-            }
-        }
-        return null;
     }
 
     renderCalendar() {
@@ -785,9 +724,6 @@ class SessionsCalendar {
             <div class="calendar-container bg-white rounded-lg shadow-md border border-gray-200 w-full relative">
                 <!-- Calendar Header -->
                 <div class="calendar-header bg-gradient-to-r from-blue-500 to-blue-600 text-white p-3 rounded-t-lg relative">
-                    <button id="sync-time-btn" class="absolute left-2 top-2 w-7 h-7 rounded-full bg-green-400 hover:bg-green-500 text-white flex items-center justify-center shadow" title="مزامنة">
-                        <i class="ri-refresh-line text-sm"></i>
-                    </button>
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div class="flex items-center gap-2">
                             <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر التالي">
@@ -1149,31 +1085,6 @@ class SessionsCalendar {
         }
 
 
-        document.getElementById('sync-time-btn')?.addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const icon = btn.querySelector('i');
-            btn.disabled = true;
-            btn.classList.add('opacity-80', 'cursor-not-allowed');
-            const oldIcon = icon.className;
-            icon.classList.add('animate-spin');
-            showToast('جارٍ تحديث التقويم...', 'info');
-            try {
-                const offset = await this.syncTimeOffset();
-                if (typeof offset === 'number') {
-                    showToast('تمت مزامنة الوقت بنجاح', 'success');
-                    this.updateStatistics();
-                    this.updateContent();
-                } else {
-                    showToast('تعذر المزامنة حالياً', 'error');
-                }
-            } catch (e) {
-                showToast('تعذر المزامنة حالياً', 'error');
-            } finally {
-                icon.classList.remove('animate-spin');
-                btn.disabled = false;
-                btn.classList.remove('opacity-80', 'cursor-not-allowed');
-            }
-        });
 
 
         const dateSearch = document.getElementById('date-search');
@@ -1210,7 +1121,11 @@ class SessionsCalendar {
                 return s;
             };
             const handle = () => {
-                const raw = newDateSearch.value;
+                const raw = (newDateSearch.value || '').trim();
+                if (!raw) {
+                    self.clearFilter();
+                    return;
+                }
                 const norm = normalize(raw);
                 if (norm) {
                     newDateSearch.value = norm;
@@ -1218,6 +1133,11 @@ class SessionsCalendar {
                     self.searchByDate(norm, { silent: true });
                 }
             };
+            newDateSearch.addEventListener('input', () => {
+                if (!newDateSearch.value.trim()) {
+                    self.clearFilter();
+                }
+            });
             newDateSearch.addEventListener('change', handle);
             newDateSearch.addEventListener('keydown', (e) => { if (e.key === 'Enter') { e.preventDefault(); handle(); } });
 
@@ -1686,6 +1606,7 @@ class SessionsCalendar {
         const caseNo = caseRecord ? `${caseRecord.caseNumber || '-'}` : '-';
         const caseYear = caseRecord ? `${caseRecord.caseYear || '-'}` : '-';
         const invCombo = `${inventoryNumber} لسنة ${session.inventoryYear || '-'}`;
+        const subject = (caseRecord && caseRecord.subject) ? String(caseRecord.subject).trim() : (session.subject ? String(session.subject).trim() : '');
 
         const clientId = caseRecord?.clientId;
         const opponentId = caseRecord?.opponentId;
@@ -1703,6 +1624,7 @@ class SessionsCalendar {
                             <div class="text-center">
                                 <div class="session-client-name text-xl font-bold text-blue-700 leading-normal truncate" title="${clientName}">${clientName}</div>
                                 <div class="session-opponent-name mt-0.5 text-xl font-bold text-red-600 leading-normal truncate pb-0.5" title="${opponentName}">${opponentName}</div>
+                                ${subject ? `<div class="mt-1 text-xs font-semibold text-gray-700 bg-gray-50 border border-gray-200/60 rounded px-2 py-0.5 truncate" title="${subject}">${subject}</div>` : ''}
                             </div>
                             <div class="session-meta text-gray-700">
                                 <div class="grid grid-cols-2 gap-x-3 gap-y-1">
@@ -1727,6 +1649,11 @@ class SessionsCalendar {
                                     <span class="text-base font-bold text-red-600">${opponentName}</span>
                                 </div>
                             </div>
+                            ${subject ? `
+                            <div class="flex flex-wrap items-center text-sm text-gray-700">
+                                <span class="inline-flex items-center min-w-0"><i class="ri-article-line text-gray-500 ml-1"></i>الموضوع: <strong class="mr-1 text-gray-900">${subject}</strong></span>
+                            </div>
+                            ` : ''}
                             <div class="flex flex-wrap items-center text-sm text-gray-700 gap-1">
                                 <span class="inline-flex items-center min-w-0 min-w-[140px]"><i class="ri-briefcase-line text-gray-500 ml-1"></i>القضية: <strong>${caseNo} لسنة ${caseYear}</strong></span>
                                 <span class="text-gray-300 mx-2">|</span>

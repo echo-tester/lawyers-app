@@ -2,7 +2,7 @@
 const UPDATE_CONFIG = {
     owner: 'echo-tester',
     repo: 'lawyers-app',
-    currentVersion: '4.0.7',
+    currentVersion: '5.0.0',
     stableTag: 'stable'
 };
 // [/UPDATE_CONFIG]
@@ -57,6 +57,9 @@ async function refreshWebAppToLatest() {
                 const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
                 if (reg && typeof reg.update === 'function') {
                     await withAbortTimeout(() => reg.update());
+                if (reg && reg.waiting) {
+                    try { reg.waiting.postMessage({ type: 'SKIP_WAITING' }); } catch (_) { }
+                }
                 }
             }
         } catch (e) {

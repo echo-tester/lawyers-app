@@ -228,70 +228,7 @@ class AdministrativeManager {
 
 
     getNow() {
-        try {
-            const raw = localStorage.getItem('onlineTimeOffsetMs');
-            const offset = raw ? parseInt(raw, 10) : 0;
-            if (!isNaN(offset)) {
-                return new Date(Date.now() + offset);
-            }
-        } catch (e) { }
         return new Date();
-    }
-
-    async syncTimeOffset() {
-        const endpoints = [
-            'http://worldclockapi.com/api/json/utc/now',
-            'https://timeapi.io/api/Time/current/zone?timeZone=UTC',
-            'https://worldtimeapi.org/api/timezone/UTC',
-            'https://api.github.com',
-            'https://httpbin.org/get'
-        ];
-        for (const url of endpoints) {
-            try {
-                const t0 = Date.now();
-                const controller = new AbortController();
-                const timeoutId = setTimeout(() => controller.abort(), 5000);
-
-                const res = await fetch(url, {
-                    cache: 'no-store',
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
-                    },
-                    signal: controller.signal
-                });
-
-                clearTimeout(timeoutId);
-                const t1 = Date.now();
-                let serverMs = null;
-                try {
-                    const ct = res.headers.get('date');
-                    if (ct) serverMs = new Date(ct).getTime();
-                } catch (e) { }
-                if (!serverMs && !url.includes('github.com') && !url.includes('httpbin.org')) {
-                    try {
-                        const text = await res.text();
-                        const data = JSON.parse(text);
-                        if (data.currentDateTime) serverMs = new Date(data.currentDateTime).getTime();
-                        else if (data.utc_datetime) serverMs = new Date(data.utc_datetime).getTime();
-                        else if (data.dateTime) serverMs = new Date(data.dateTime).getTime();
-                        else if (data.datetime) serverMs = new Date(data.datetime).getTime();
-                    } catch (e) { }
-                }
-                if (serverMs) {
-                    const rtt = (t1 - t0) / 2;
-                    const approxNow = serverMs + rtt;
-                    const localNow = Date.now();
-                    const offset = approxNow - localNow;
-                    try { localStorage.setItem('onlineTimeOffsetMs', String(offset)); } catch (e) { }
-                    return offset;
-                }
-            } catch (e) {
-
-            }
-        }
-        return null;
     }
 
     async loadAllAdministrative() {
@@ -388,7 +325,7 @@ class AdministrativeManager {
                 e.preventDefault();
                 e.stopPropagation();
 
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             });
         }
 
@@ -858,9 +795,6 @@ class AdministrativeManager {
             <div class="calendar-container bg-white rounded-lg shadow-md border border-gray-200 w-full relative">
                 <!-- Calendar Header -->
                 <div class="calendar-header bg-gradient-to-r from-indigo-500 to-indigo-600 text-white p-3 rounded-t-lg relative">
-                    <button id="sync-time-btn" class="absolute left-2 top-2 w-7 h-7 rounded-full bg-green-400 hover:bg-green-500 text-white flex items-center justify-center shadow" title="مزامنة">
-                        <i class="ri-refresh-line text-sm"></i>
-                    </button>
                     <div class="flex items-center justify-between gap-3 flex-wrap">
                         <div class="flex items-center gap-2">
                             <button id="next-month" class="p-1.5 hover:bg-white hover:bg-opacity-20 rounded-md transition-colors" title="الشهر التالي">
@@ -1212,30 +1146,6 @@ class AdministrativeManager {
         }
 
 
-        document.getElementById('sync-time-btn')?.addEventListener('click', async (e) => {
-            const btn = e.currentTarget;
-            const icon = btn.querySelector('i');
-            btn.disabled = true;
-            btn.classList.add('opacity-80', 'cursor-not-allowed');
-            icon.classList.add('animate-spin');
-            showToast('جارٍ تحديث التقويم...', 'info');
-            try {
-                const offset = await this.syncTimeOffset();
-                if (typeof offset === 'number') {
-                    showToast('تمت مزامنة الوقت بنجاح', 'success');
-                    this.updateStatistics();
-                    this.updateContent();
-                } else {
-                    showToast('تعذر المزامنة حالياً', 'error');
-                }
-            } catch (e) {
-                showToast('تعذر المزامنة حالياً', 'error');
-            } finally {
-                icon.classList.remove('animate-spin');
-                btn.disabled = false;
-                btn.classList.remove('opacity-80', 'cursor-not-allowed');
-            }
-        });
 
 
         const dateSearch = document.getElementById('date-search');

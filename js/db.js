@@ -197,28 +197,17 @@ function initDB() {
 
             request.onerror = async (event) => {
                 const err = (event && event.target) ? event.target.error : null;
+                console.error("IndexedDB open error:", err);
                 dbInitPromise = null;
+
+                // Safe retry without wiping out user database
                 if (!attemptRepair && !dbInitAttemptedRepair) {
                     dbInitAttemptedRepair = true;
                     try {
-                        await new Promise((res, rej) => {
-                            try {
-                                const delReq = indexedDB.deleteDatabase('LawyerAppDB');
-                                delReq.onsuccess = () => res();
-                                delReq.onerror = () => rej(delReq.error || new Error('deleteDatabase failed'));
-                                delReq.onblocked = () => res();
-                            } catch (e) {
-                                rej(e);
-                            }
-                        });
-                    } catch (e) { }
-
-                    try {
                         db = null;
                         dbInitPromise = null;
-                    } catch (e) { }
-
-                    try {
+                        // Wait 300ms for any temporary process lock to release
+                        await new Promise(res => setTimeout(res, 300));
                         const retry = await initDB();
                         return resolve(retry);
                     } catch (e) {
@@ -446,14 +435,35 @@ async function ensureDefaultAdminUser() {
         }
         if (!db || !db.objectStoreNames || !db.objectStoreNames.contains('users')) return { created: false, usersCount: 0 };
         const users = await getAllUsers();
-        if (Array.isArray(users) && users.length > 0) return { created: false, usersCount: users.length };
+        if (Array.isArray(users) && users.length > 0) {
+            try {
+                const adminUser = users.find(u => u && u.isAdmin === true && String(u.username || '').toLowerCase() === 'admin');
+                if (adminUser) {
+                    let plain = '';
+                    try { plain = await getSetting('appPasswordPlain'); } catch (_) { }
+                    plain = (plain != null) ? String(plain) : '';
+                    const userPass = (adminUser.password != null) ? String(adminUser.password) : '';
+                    if (!plain && userPass) {
+                        try { await setSetting('appPasswordPlain', userPass); } catch (_) { }
+                    } else if (plain && !userPass) {
+                        try {
+                            if (typeof updateUser === 'function' && adminUser.id != null) {
+                                await updateUser(adminUser.id, { password: plain });
+                                adminUser.password = plain;
+                            }
+                        } catch (_) { }
+                    }
+                }
+            } catch (_) { }
+            return { created: false, usersCount: users.length };
+        }
         let pass = '';
         try {
             const p = await getSetting('appPasswordPlain');
             if (p != null && String(p) !== '') pass = String(p);
         } catch (e) { }
         const id = await addUser({ username: 'Admin', password: pass, isAdmin: true, deniedFeatures: [], createdAt: new Date().toISOString() });
-        return { created: true, usersCount: 1, id };
+        return { created: true, usersCount: 1, id, hasPassword: !!pass };
     } catch (e) {
         return { created: false, usersCount: 0, error: e?.message || String(e) };
     }
@@ -743,12 +753,19 @@ function getCount(storeName) {
     });
 }
 
+function __formatLocalDateYMD(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
+}
+
 async function getTomorrowSessionsCount() {
     return new Promise((resolve, reject) => {
         if (!db) return reject("DB not initialized");
         const d = new Date();
         d.setDate(d.getDate() + 1);
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['sessions'], 'readonly');
         const store = tx.objectStore('sessions');
         try {
@@ -779,7 +796,7 @@ async function getTomorrowAdministrativeCount() {
         if (!db) return reject("DB not initialized");
         const d = new Date();
         d.setDate(d.getDate() + 1);
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['administrative'], 'readonly');
         const store = tx.objectStore('administrative');
         try {
@@ -808,7 +825,7 @@ async function getTodayAdministrativeCount() {
     return new Promise((resolve, reject) => {
         if (!db) return reject("DB not initialized");
         const d = new Date();
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['administrative'], 'readonly');
         const store = tx.objectStore('administrative');
         try {
@@ -837,7 +854,7 @@ async function getTodaySessionsCount() {
     return new Promise((resolve, reject) => {
         if (!db) return reject("DB not initialized");
         const d = new Date();
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['sessions'], 'readonly');
         const store = tx.objectStore('sessions');
         try {
@@ -868,7 +885,7 @@ async function getTomorrowExpertSessionsCount() {
         if (!db) return reject("DB not initialized");
         const d = new Date();
         d.setDate(d.getDate() + 1);
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['expertSessions'], 'readonly');
         const store = tx.objectStore('expertSessions');
         try {
@@ -898,7 +915,7 @@ async function getTodayExpertSessionsCount() {
     return new Promise((resolve, reject) => {
         if (!db) return reject("DB not initialized");
         const d = new Date();
-        const key = d.toISOString().split('T')[0];
+        const key = __formatLocalDateYMD(d);
         const tx = db.transaction(['expertSessions'], 'readonly');
         const store = tx.objectStore('expertSessions');
         try {
@@ -926,7 +943,7 @@ async function getTodayExpertSessionsCount() {
 
 
 
-function getRecordsByDate(storeName, dateField, dateString, limit = 5) {
+function getRecordsByDate(storeName, dateField, dateString, limit = null) {
     return new Promise((resolve, reject) => {
         if (!db) return reject("DB not initialized");
         const tx = db.transaction([storeName], 'readonly');
@@ -936,7 +953,10 @@ function getRecordsByDate(storeName, dateField, dateString, limit = 5) {
                 const idx = store.index(dateField);
                 const req = idx.getAll(dateString);
                 req.onsuccess = () => {
-                    const arr = Array.isArray(req.result) ? req.result.slice(0, limit) : [];
+                    let arr = Array.isArray(req.result) ? req.result : [];
+                    if (limit && limit > 0) {
+                        arr = arr.slice(0, limit);
+                    }
                     resolve(arr);
                 };
                 req.onerror = (e) => resolve([]);
@@ -951,7 +971,7 @@ function getRecordsByDate(storeName, dateField, dateString, limit = 5) {
                 const v = cursor.value || {};
                 if (v[dateField] === dateString) {
                     out.push(v);
-                    if (out.length >= limit) {
+                    if (limit && limit > 0 && out.length >= limit) {
                         resolve(out);
                         return;
                     }
@@ -965,37 +985,37 @@ function getRecordsByDate(storeName, dateField, dateString, limit = 5) {
     });
 }
 
-async function getTodaySessions(limit = 5) {
+async function getTodaySessions(limit = null) {
     const d = new Date();
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('sessions', 'sessionDate', s, limit);
 }
-async function getTomorrowSessions(limit = 5) {
+async function getTomorrowSessions(limit = null) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('sessions', 'sessionDate', s, limit);
 }
-async function getTodayExpertSessions(limit = 5) {
+async function getTodayExpertSessions(limit = null) {
     const d = new Date();
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('expertSessions', 'sessionDate', s, limit);
 }
-async function getTomorrowExpertSessions(limit = 5) {
+async function getTomorrowExpertSessions(limit = null) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('expertSessions', 'sessionDate', s, limit);
 }
-async function getTodayAdministrative(limit = 5) {
+async function getTodayAdministrative(limit = null) {
     const d = new Date();
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('administrative', 'dueDate', s, limit);
 }
-async function getTomorrowAdministrative(limit = 5) {
+async function getTomorrowAdministrative(limit = null) {
     const d = new Date();
     d.setDate(d.getDate() + 1);
-    const s = d.toISOString().split('T')[0];
+    const s = __formatLocalDateYMD(d);
     return getRecordsByDate('administrative', 'dueDate', s, limit);
 }
 

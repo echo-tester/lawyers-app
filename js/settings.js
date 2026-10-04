@@ -460,22 +460,22 @@ async function displaySettingsModal() {
                     </div>
                 </div>
 
-                <!-- عرض التاريخ -->
-                <div class="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-3 shadow-sm transition-all h-fit">
+                <!-- صيغة التاريخ -->
+                <div id="date-locale-card" class="bg-white border border-gray-200 rounded-lg sm:rounded-xl p-3 shadow-sm transition-all h-fit">
                     <div class="flex items-center gap-4">
                         <div class="flex items-center gap-2 flex-shrink-0 min-w-[160px]">
                             <div class="w-10 h-10 bg-blue-500 rounded-xl flex items-center justify-center shadow-md">
-                                <i class="ri-calendar-2-line text-white text-lg"></i>
+                                <i class="ri-calendar-line text-white text-lg"></i>
                             </div>
                             <div class="text-right">
-                                <h3 class="text-base font-bold text-blue-700 mb-1">عرض التاريخ</h3>
+                                <h3 class="text-base font-bold text-blue-700 mb-1">صيغة التاريخ</h3>
                             </div>
                         </div>
                         <div class="flex-1 max-w-[520px]">
                             <div class="flex gap-2 items-center">
                                 <select id="date-locale-mode" class="flex-1 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-600 text-center text-sm bg-white transition-all shadow-sm" style="min-height: auto; font-size: 14px;">
-                                    <option value="ar-EG">عربي</option>
-                                    <option value="en-GB">إنجليزي</option>
+                                    <option value="ar-EG">أرقام هندية (١، ٢، ٣)</option>
+                                    <option value="en-GB">أرقام إنجليزية (1, 2, 3)</option>
                                 </select>
                             </div>
                         </div>
@@ -938,7 +938,7 @@ async function displaySettingsModal() {
             if (title.includes('اسم المكتب') || title.includes('بيانات المكتب')) return 'general';
             if (title.includes('مسار حفظ البيانات')) return 'backup';
             if (title.includes('التنبيهات الصوتية')) return 'general';
-            if (title.includes('عرض التاريخ')) return 'general';
+            if (title.includes('عرض التاريخ') || title.includes('صيغة التاريخ') || title.includes('صيغة الأرقام')) return 'general';
 
             if (title.includes('أمان البرنامج')) return 'general';
             if (title.includes('أمان الحسابات') || title.includes('الإعدادات')) return 'general';
@@ -1580,9 +1580,9 @@ async function displaySettingsModal() {
         select.addEventListener('change', async () => {
             try {
                 await setSetting('dateLocale', select.value === 'ar-EG' ? 'ar-EG' : 'en-GB');
-                if (typeof showToast === 'function') showToast('تم حفظ تنسيق التاريخ', 'success');
+                if (typeof showToast === 'function') showToast('تم حفظ صيغة التاريخ', 'success');
             } catch (e) {
-                if (typeof showToast === 'function') showToast('تعذر حفظ التاريخ', 'error');
+                if (typeof showToast === 'function') showToast('تعذر حفظ صيغة التاريخ', 'error');
             }
         });
     })();
@@ -1602,6 +1602,33 @@ async function displaySettingsModal() {
         const saveOffice = async () => {
             await saveOfficeProfileSettings({ successMessage: 'تم حفظ بيانات المكتب' });
         };
+        const officeNameInputEl = document.getElementById('office-name-input');
+        if (officeNameInputEl) {
+            let lastOfficeToastTime = 0;
+            officeNameInputEl.addEventListener('input', () => {
+                const raw = officeNameInputEl.value || '';
+                if (raw.length > 15) {
+                    const now = Date.now();
+                    if (now - lastOfficeToastTime > 1500) {
+                        lastOfficeToastTime = now;
+                        try {
+                            if (typeof showToast === 'function') {
+                                showToast('الحد الأقصى لاسم المكتب هو 15 حرفاً', 'warning');
+                            }
+                        } catch (_) { }
+                    }
+                }
+                // السماح فقط بالحروف العربية والإنجليزية والأرقام والمسافات بحد أقصى 15 حرف
+                const cleaned = raw
+                    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .substring(0, 15);
+                if (officeNameInputEl.value !== cleaned) {
+                    officeNameInputEl.value = cleaned;
+                }
+            });
+        }
+
         officeInputs.forEach((input) => {
             input.addEventListener('blur', saveOffice);
             input.addEventListener('keydown', (e) => {
@@ -1824,7 +1851,11 @@ async function displaySettingsModal() {
 
                     const pickStrongRecommended = (arr) => {
                         try {
-                            const fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.driveType) === 3);
+                            let fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.driveType) === 3);
+                            if (!fixed.length) {
+                                fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.freeSpace) > 0);
+                            }
+                            if (!fixed.length) fixed = arr || [];
                             if (!fixed.length) return null;
                             let best = fixed[0];
                             for (const d of fixed) {
@@ -2016,7 +2047,7 @@ async function displaySettingsModal() {
         attachEyeToggle('app-password-confirm', 'toggle-app-password-confirm');
     })();
 
-    setTimeout(() => {
+    setTimeout(async () => {
         try {
             const saveBtn = document.getElementById('save-sync-settings-btn');
             if (saveBtn) saveBtn.style.display = 'none';
@@ -2024,6 +2055,10 @@ async function displaySettingsModal() {
             if (autoSyncToggle) {
                 const container = autoSyncToggle.closest('.p-3');
                 if (container) container.remove();
+            }
+            // تعطيل المزامنة التلقائية نهائياً لجميع المستخدمين
+            if (typeof setSetting === 'function') {
+                await setSetting('autoSyncEnabled', false);
             }
         } catch (e) { }
     }, 0);
@@ -2621,10 +2656,20 @@ async function displaySettingsModal() {
             if (confirmInput) { try { confirmInput.value = ''; } catch (e) { } }
         } catch (e) { }
 
+        input.setAttribute('maxlength', '15');
         input.addEventListener('input', () => {
+            const s = (input.value || '').replace(/\D/g, '').slice(0, 15);
+            if (input.value !== s) input.value = s;
             try { input.dataset.userEdited = '1'; } catch (e) { }
             updateConfirmVisibility();
         });
+        if (confirmInput) {
+            confirmInput.setAttribute('maxlength', '15');
+            confirmInput.addEventListener('input', () => {
+                const s = (confirmInput.value || '').replace(/\D/g, '').slice(0, 15);
+                if (confirmInput.value !== s) confirmInput.value = s;
+            });
+        }
         updateConfirmVisibility();
     }
 
@@ -2912,8 +2957,16 @@ function readOfficeProfileValues() {
 async function saveOfficeProfileSettings(options = {}) {
     try {
         const values = readOfficeProfileValues();
+        // تنظيف اسم المكتب وقصّه لـ 15 حرف بدون رموز
+        if (values.officeName) {
+            values.officeName = values.officeName
+                .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '')
+                .replace(/\s+/g, ' ')
+                .trim()
+                .substring(0, 15);
+        }
         if (!values.officeName) {
-            if (!(options && options.silentValidation === true) && typeof showToast === 'function') showToast('يرجى إدخال اسم المكتب', 'error');
+            if (!(options && options.silentValidation === true) && typeof showToast === 'function') showToast('يرجى إدخال اسم المكتب (أحرف وأرقام فقط)', 'error');
             return false;
         }
 
@@ -3884,12 +3937,24 @@ async function restoreBackup(backupData, useOnlyEnabledTables = false) {
         };
 
 
-        console.log('🗑️ حذف البيانات المحلية القديمة...');
+        // أخذ نسخة أمان احتياطية قبل لمس أي جدول لمنع أي فقدان في حالة الفشل
+        console.log('📸 أخذ نسخة أمان احتياطية قبل الاسترجاع...');
+        const safetySnapshot = {};
         for (const storeName of expectedStores) {
             try {
-                await __report(10, 'حذف البيانات القديمة...');
+                await __report(8, `تأمين بيانات جدول ${storeName}...`);
+                safetySnapshot[storeName] = await getAllRecords(storeName);
+            } catch (e) {
+                safetySnapshot[storeName] = [];
+            }
+        }
+
+        console.log('🗑️ حذف البيانات المحلية القديمة بعد التأمين...');
+        for (const storeName of expectedStores) {
+            try {
+                await __report(10, 'تجهيز الجداول للاسترجاع...');
                 await clearStore(storeName);
-                console.log(`✅ تم حذف جدول ${storeName}`);
+                console.log(`✅ تم تجهيز جدول ${storeName}`);
             } catch (error) {
                 console.warn(`⚠️ تعذر حذف جدول ${storeName}:`, error);
             }
@@ -4098,18 +4163,36 @@ async function restoreBackup(backupData, useOnlyEnabledTables = false) {
             }
         };
 
-        // Restore in stable dependency order
+        // Restore in stable dependency order with rollback protection
         const ordered = ['clients', 'opponents', 'cases', 'sessions', 'accounts', 'administrative', 'clerkPapers', 'expertSessions', 'settings', 'users'];
-        for (const storeName of ordered) {
-            if (!expectedStores.includes(storeName)) continue;
-            try {
+        try {
+            for (const storeName of ordered) {
+                if (!expectedStores.includes(storeName)) continue;
                 await __report(calcPct(15, 80), `استعادة ${storeName}...`);
                 await restoreStore(storeName);
-            } catch (error) {
-                const details = error && (error.name || error.message) ? ` (${error.name || error.message})` : '';
-                console.error(`خطأ في استعادة جدول ${storeName}:`, error);
-                throw new Error(`فشل في استعادة جدول ${storeName}${details}`);
             }
+        } catch (error) {
+            console.error('❌ خطأ أثناء إدخال البيانات الجديدة، بدء التراجع واسترجاع نسخة الأمان...', error);
+            try {
+                await __report(50, 'حدث خطأ أثناء الاسترجاع، جاري استعادة بياناتك السابقة بأمان...');
+                for (const storeName of expectedStores) {
+                    try {
+                        await clearStore(storeName);
+                        const oldRecords = safetySnapshot[storeName] || [];
+                        for (const rec of oldRecords) {
+                            if (rec && rec.id != null) {
+                                await putRecord(storeName, rec);
+                            } else {
+                                await addRecord(storeName, rec);
+                            }
+                        }
+                    } catch (rbErr) {
+                        console.error(`خطأ أثناء استرجاع جدول ${storeName}:`, rbErr);
+                    }
+                }
+            } catch (_) { }
+            const details = error && (error.name || error.message) ? ` (${error.name || error.message})` : '';
+            throw new Error(`فشل في استعادة البيانات وتم استرجاع بياناتك السابقة بأمان دون أي فقدان${details}`);
         }
 
         await __report(98, `إتمام الاسترجاع... (${processedRecords}/${totalRecords})`);
@@ -5492,7 +5575,7 @@ function createDataComparisonModal(clientId, cloudData, localData) {
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- الأزرار -->
                 <div class="flex flex-col gap-2 sm:gap-3">
                     <!-- مجموعة أزرار المزامنة -->
@@ -5563,6 +5646,28 @@ function createDataComparisonModal(clientId, cloudData, localData) {
         document.body.appendChild(overlay);
     });
 }
+
+// دالة لمعاينة شاشة المزامنة فوراً لفحص الشكل والتصميم
+window.previewSyncModal = function() {
+    const demoCloud = {
+        lastModified: new Date().toISOString(),
+        sourceOfficeName: 'مكتب المحامي الرقمي (السحابة)',
+        clients: 14,
+        cases: 32,
+        sessions: 56,
+        size: 184320
+    };
+    const demoLocal = {
+        timestamp: new Date().toISOString(),
+        sourceOfficeName: 'جهاز الكمبيوتر الحالي',
+        data: {
+            clients: new Array(14),
+            cases: new Array(32),
+            sessions: new Array(56)
+        }
+    };
+    return createDataComparisonModal('demo-preview', demoCloud, demoLocal);
+};
 
 
 async function showCloudBackupHistory(localData) {
@@ -5863,11 +5968,15 @@ async function uploadToGitHub(clientId, data) {
     const sessionsCount = padCount((d.sessions || []).length);
     const accountsCount = padCount((d.accounts || []).length);
 
-    // جلب اسم المكتب لإضافته للاسم وللبيانات
-    const syncOfficeName = await getSetting('officeName') || 'مكتب غير مسمى';
-    const officeSlugRaw = String(syncOfficeName || '').trim().substring(0, 40)
-        .replace(/[<>:"/\\|?*]/g, '')
-        .replace(/\s+/g, '-');
+    // جلب اسم المكتب لإضافته للاسم وللبيانات بحد أقصى 15 حرف وبدون رموز غريبة
+    const rawOfficeName = await getSetting('officeName') || 'مكتب';
+    const syncOfficeName = String(rawOfficeName || '')
+        .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .substring(0, 15) || 'مكتب';
+
+    const officeSlugRaw = syncOfficeName.replace(/\s+/g, '-');
     const safeOfficeSlug = officeSlugRaw || 'office';
 
     const fileName = `${timestampKey}__c${clientsCount}_k${casesCount}_s${sessionsCount}_a${accountsCount}__o-${safeOfficeSlug}.json`;
@@ -6206,31 +6315,8 @@ async function setupAutoSyncToggle() {
 
 
 async function performAutoSync() {
-    try {
-        const isAutoSyncEnabled = await getSetting('autoSyncEnabled');
-        const clientId = await getSetting('syncClientId');
-
-        if (!isAutoSyncEnabled || !clientId) {
-            return;
-        }
-
-        console.log('بدء المزامنة التلقائية...');
-
-
-        const localData = await createBackup(true); // استخدام الجداول المفعلة فقط
-
-
-        await uploadToGitHub(clientId, localData);
-
-
-        await setSetting('lastSyncTime', new Date().toISOString());
-
-        console.log('تمت المزامنة التلقائية بنجاح');
-
-    } catch (error) {
-        console.error('خطأ في المزامنة التلقائية:', error);
-
-    }
+    // تم إلغاء المزامنة التلقائية نهائياً لمنع أي رفع صامت أو تضارب في البيانات
+    return Promise.resolve();
 }
 
 
@@ -6420,87 +6506,23 @@ async function handleDirectUpload() {
 }
 
 
-window.addEventListener('beforeunload', async (event) => {
-    try {
-        const isAutoSyncEnabled = await getSetting('autoSyncEnabled');
-        if (isAutoSyncEnabled) {
-
-            event.preventDefault();
-            await performAutoSync();
-        }
-    } catch (error) {
-        console.error('خطأ في المزامنة التلقائية عند الإغلاق:', error);
-    }
-});
-
+// تم إلغاء حدث الإغلاق beforeunload لضمان عدم رفع أي بيانات في الخلفية عند قفل البرنامج
 
 let syncInterval = null;
 let countdownInterval = null;
 let nextSyncTime = null;
 
 async function startPeriodicSync() {
-
+    // تم إلغاء المزامنة الدورية بالكامل لضمان عدم حدوث أي عملية رفع إلا بطلب يدوي صريح من المستخدم
     if (syncInterval) {
         clearInterval(syncInterval);
         syncInterval = null;
     }
-
     if (countdownInterval) {
         clearInterval(countdownInterval);
         countdownInterval = null;
     }
-
-    try {
-
-        if (!getDbInstance()) {
-            console.log('قاعدة البيانات غير جاهزة، سيتم إعادة المحاولة لاحقاً');
-            setTimeout(startPeriodicSync, 2000);
-            return;
-        }
-
-
-        const intervalMinutes = await getSetting('syncInterval') || 30;
-
-
-        if (intervalMinutes === 0) {
-            console.log('المزامنة الدورية معطلة');
-            nextSyncTime = null;
-            updateCountdownDisplay();
-            return;
-        }
-
-        const intervalMs = intervalMinutes * 60 * 1000;
-        console.log(`بدء المزامنة الدورية كل ${intervalMinutes} دقيقة`);
-
-
-        nextSyncTime = Date.now() + intervalMs;
-
-
-        startCountdown();
-
-
-        syncInterval = setInterval(async () => {
-            try {
-                const isAutoSyncEnabled = await getSetting('autoSyncEnabled');
-                const clientId = await getSetting('syncClientId');
-
-                if (isAutoSyncEnabled && clientId) {
-                    console.log('بدء المزامنة الدورية...');
-                    await performAutoSync();
-                    console.log('انتهت المزامنة الدورية');
-                }
-
-
-                nextSyncTime = Date.now() + intervalMs;
-
-            } catch (error) {
-                console.error('خطأ في المزامنة الدورية:', error);
-            }
-        }, intervalMs);
-
-    } catch (error) {
-        console.error('خطأ في إعداد المزامنة الدورية:', error);
-    }
+    return Promise.resolve();
 }
 
 

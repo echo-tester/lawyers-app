@@ -59,30 +59,30 @@ const __reportsCasesDefaultVisibleColumns = ['clientName', 'opponentName', 'case
 let __reportsCasesTimeFilterMode = 'all'; // all | today | week | month
 let __reportsCasesSearchTerm = '';
 const __reportsCasesColumnDefinitions = [
-    { key: 'clientName', group: 'clients', label: 'اسم الموكل', icon: 'ri-user-3-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'clientPhone', group: 'clients', label: 'هاتف الموكل', icon: 'ri-phone-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'clientCapacity', group: 'clients', label: 'صفة الموكل', icon: 'ri-bookmark-3-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'clientAddress', group: 'clients', label: 'عنوان الموكل', icon: 'ri-map-pin-line', cellClass: 'whitespace-normal break-words' },
-    { key: 'opponentName', group: 'opponents', label: 'اسم الخصم', icon: 'ri-user-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'opponentPhone', group: 'opponents', label: 'هاتف الخصم', icon: 'ri-phone-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'opponentCapacity', group: 'opponents', label: 'صفة الخصم', icon: 'ri-bookmark-3-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'opponentAddress', group: 'opponents', label: 'عنوان الخصم', icon: 'ri-map-pin-line', cellClass: 'whitespace-normal break-words' },
-    { key: 'fileNumber', group: 'cases', label: 'رقم الملف', icon: 'ri-folder-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'caseNumber', group: 'cases', label: 'رقم القضية', icon: 'ri-hashtag', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'caseType', group: 'cases', label: 'نوع القضية', icon: 'ri-file-list-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'court', group: 'cases', label: 'المحكمة', icon: 'ri-building-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'circuitNumber', group: 'cases', label: 'رقم الدائرة', icon: 'ri-layout-grid-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'subject', group: 'cases', label: 'موضوع القضية', icon: 'ri-article-line', cellClass: 'whitespace-normal break-words' },
-    { key: 'caseStatus', group: 'cases', label: 'حالة القضية', icon: 'ri-scales-3-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'poaNumber', group: 'cases', label: 'رقم التوكيل', icon: 'ri-file-paper-2-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'appealLabel', group: 'cases', label: 'الاستئناف', icon: 'ri-file-copy-2-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'cassationLabel', group: 'cases', label: 'النقض', icon: 'ri-file-copy-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'sessionDate', group: 'sessions', label: 'آخر جلسة', icon: 'ri-calendar-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'roll', group: 'sessions', label: 'الرول', icon: 'ri-list-check', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'inventoryNumber', group: 'sessions', label: 'رقم الحصر', icon: 'ri-file-list-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
-    { key: 'inventoryYear', group: 'sessions', label: 'سنة الحصر', icon: 'ri-calendar-2-line', cellClass: 'whitespace-nowrap overflow-hidden' },
-    { key: 'decision', group: 'sessions', label: 'القرار', icon: 'ri-gavel-line', cellClass: 'break-words' },
-    { key: 'requests', group: 'sessions', label: 'الطلبات', icon: 'ri-question-answer-line', cellClass: 'break-words' }
+    { key: 'clientName', group: 'clients', label: 'اسم الموكل', icon: 'ri-user-3-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '175px' },
+    { key: 'clientPhone', group: 'clients', label: 'هاتف الموكل', icon: 'ri-phone-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '115px' },
+    { key: 'clientCapacity', group: 'clients', label: 'صفة الموكل', icon: 'ri-bookmark-3-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '105px' },
+    { key: 'clientAddress', group: 'clients', label: 'عنوان الموكل', icon: 'ri-map-pin-line', cellClass: 'whitespace-normal break-words', minWidth: '155px' },
+    { key: 'opponentName', group: 'opponents', label: 'اسم الخصم', icon: 'ri-user-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '175px' },
+    { key: 'opponentPhone', group: 'opponents', label: 'هاتف الخصم', icon: 'ri-phone-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '115px' },
+    { key: 'opponentCapacity', group: 'opponents', label: 'صفة الخصم', icon: 'ri-bookmark-3-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '105px' },
+    { key: 'opponentAddress', group: 'opponents', label: 'عنوان الخصم', icon: 'ri-map-pin-line', cellClass: 'whitespace-normal break-words', minWidth: '155px' },
+    { key: 'fileNumber', group: 'cases', label: 'رقم الملف', icon: 'ri-folder-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '85px' },
+    { key: 'caseNumber', group: 'cases', label: 'رقم القضية', icon: 'ri-hashtag', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '125px' },
+    { key: 'caseType', group: 'cases', label: 'نوع القضية', icon: 'ri-file-list-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '115px' },
+    { key: 'court', group: 'cases', label: 'المحكمة', icon: 'ri-building-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '115px' },
+    { key: 'circuitNumber', group: 'cases', label: 'رقم الدائرة', icon: 'ri-layout-grid-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '90px' },
+    { key: 'subject', group: 'cases', label: 'موضوع القضية', icon: 'ri-article-line', cellClass: 'whitespace-normal break-words', minWidth: '165px' },
+    { key: 'caseStatus', group: 'cases', label: 'حالة القضية', icon: 'ri-scales-3-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '105px' },
+    { key: 'poaNumber', group: 'cases', label: 'رقم التوكيل', icon: 'ri-file-paper-2-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '115px' },
+    { key: 'appealLabel', group: 'cases', label: 'الاستئناف', icon: 'ri-file-copy-2-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '125px' },
+    { key: 'cassationLabel', group: 'cases', label: 'النقض', icon: 'ri-file-copy-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '125px' },
+    { key: 'sessionDate', group: 'sessions', label: 'آخر جلسة', icon: 'ri-calendar-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '115px' },
+    { key: 'roll', group: 'sessions', label: 'الرول', icon: 'ri-list-check', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '75px' },
+    { key: 'inventoryNumber', group: 'sessions', label: 'رقم الحصر', icon: 'ri-file-list-line', cellClass: 'whitespace-normal break-words overflow-hidden', minWidth: '115px' },
+    { key: 'inventoryYear', group: 'sessions', label: 'سنة الحصر', icon: 'ri-calendar-2-line', cellClass: 'whitespace-nowrap overflow-hidden', minWidth: '95px' },
+    { key: 'decision', group: 'sessions', label: 'القرار', icon: 'ri-gavel-line', cellClass: 'break-words', minWidth: '155px' },
+    { key: 'requests', group: 'sessions', label: 'الطلبات', icon: 'ri-question-answer-line', cellClass: 'break-words', minWidth: '155px' }
 ];
 
 function __escapeReportsCasesHtml(value) {
@@ -203,44 +203,33 @@ function __buildReportsCasesColumnMenuHTML(activeColumnKey) {
     const visibleSet = new Set(visibleKeys);
     const currentColumn = __reportsCasesColumnDefinitions.find(col => col.key === activeColumnKey);
     const sameGroupColumns = currentColumn
-        ? __reportsCasesColumnDefinitions.filter(col => col.group === currentColumn.group && col.key !== activeColumnKey)
+        ? __reportsCasesColumnDefinitions.filter(col => col.group === currentColumn.group && col.key !== activeColumnKey && !visibleSet.has(col.key))
         : [];
-    const items = sameGroupColumns.length ? sameGroupColumns.map(col => {
-        const isVisible = visibleSet.has(col.key);
-        if (isVisible) {
-            return `
-                <div class="w-full flex items-center gap-2 px-3 py-2.5 text-right text-gray-400 bg-gray-50 cursor-default">
-                    <i class="ri-check-line text-orange-500"></i>
-                    <span class="flex-1 text-sm font-medium">${col.label} مضاف بالفعل</span>
-                </div>
-            `;
-        }
-        return `
-            <button type="button" onclick="toggleReportsCasesColumnVisibility(event, '${col.key}', '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right hover:bg-orange-50 transition-colors text-gray-700">
-                <i class="ri-add-circle-line text-green-600"></i>
-                <span class="flex-1 text-sm font-medium">إضافة ${col.label}</span>
-                <i class="ri-add-line text-green-600 text-sm"></i>
-            </button>
-        `;
-    }).join('') : `
+    const items = sameGroupColumns.length ? sameGroupColumns.map(col => `
+        <button type="button" onclick="toggleReportsCasesColumnVisibility(event, '${col.key}', '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right hover:bg-orange-50 transition-colors text-gray-700">
+            <i class="ri-add-circle-line text-green-600"></i>
+            <span class="flex-1 text-sm font-medium">إضافة ${col.label}</span>
+            <i class="ri-add-line text-green-600 text-sm"></i>
+        </button>
+    `).join('') : `
         <div class="px-3 py-3 text-sm text-gray-500 text-right bg-gray-50">لا توجد حقول أخرى في نفس الجدول</div>
     `;
     const canHideCurrent = visibleSet.has(activeColumnKey) && visibleKeys.length > 1;
     return `
-        <div id="reports-cases-column-menu-${activeColumnKey}" class="hidden absolute top-full right-0 mt-2 w-72 max-w-[92vw] bg-white border border-orange-200 rounded-xl shadow-2xl z-[80] overflow-hidden">
+        <div id="reports-cases-column-menu-${activeColumnKey}" class="hidden absolute top-full right-0 mt-2 w-72 max-w-[92vw] bg-white border border-orange-200 rounded-xl shadow-2xl z-[80] overflow-hidden flex flex-col">
             ${currentColumn ? `
-                <div class="px-3 py-2 bg-orange-50 border-b border-orange-100 text-right">
+                <div class="px-3 py-2 bg-orange-50 border-b border-orange-100 text-right shrink-0">
                     <div class="text-xs font-bold text-orange-700">حقول ${currentColumn.label}</div>
                 </div>
-                <button type="button" onclick="hideReportsCasesColumn(event, '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right ${canHideCurrent ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 bg-gray-50 cursor-not-allowed'} transition-colors" ${canHideCurrent ? '' : 'disabled'}>
+                <button type="button" onclick="hideReportsCasesColumn(event, '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right ${canHideCurrent ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 bg-gray-50 cursor-not-allowed'} transition-colors shrink-0" ${canHideCurrent ? '' : 'disabled'}>
                     <i class="ri-eye-off-line"></i>
                     <span class="text-sm font-semibold">إخفاء ${currentColumn.label}</span>
                 </button>
             ` : ''}
-            <div class="border-t border-orange-100"></div>
-            <div class="max-h-80 overflow-y-auto">${items}</div>
-            <div class="border-t border-orange-100"></div>
-            <button type="button" onclick="resetReportsCasesColumns(event)" class="w-full flex items-center gap-2 px-3 py-2.5 text-right text-blue-700 hover:bg-blue-50 transition-colors">
+            <div class="border-t border-orange-100 shrink-0"></div>
+            <div class="overflow-y-auto flex-1 max-h-80">${items}</div>
+            <div class="border-t border-orange-100 shrink-0"></div>
+            <button type="button" onclick="resetReportsCasesColumns(event)" class="w-full flex items-center gap-2 px-3 py-2.5 text-right text-blue-700 hover:bg-blue-50 transition-colors shrink-0">
                 <i class="ri-refresh-line"></i>
                 <span class="text-sm font-semibold">إرجاع الافتراضي</span>
             </button>
@@ -251,6 +240,22 @@ function __buildReportsCasesColumnMenuHTML(activeColumnKey) {
 function closeReportsCasesColumnMenus() {
     document.querySelectorAll('[id^="reports-cases-column-menu-"]').forEach(menu => {
         try { menu.classList.add('hidden'); } catch (_) { }
+    });
+}
+
+function __cleanupDetachedCasesColumnMenus() {
+    document.querySelectorAll('body > [id^="reports-cases-column-menu-"]').forEach(menu => {
+        try { menu.remove(); } catch (_) { }
+    });
+}
+
+// إغلاق القائمة تلقائياً عند النقر في أي مكان خارجها
+if (!window.__reportsCasesGlobalMenuClickBound) {
+    window.__reportsCasesGlobalMenuClickBound = true;
+    document.addEventListener('click', function (e) {
+        if (!e.target.closest('[id^="reports-cases-column-menu-"]') && !e.target.closest('.reports-cases-column-toggle-btn')) {
+            closeReportsCasesColumnMenus();
+        }
     });
 }
 
@@ -276,7 +281,6 @@ function __positionReportsCasesColumnMenu(menu, anchorEl) {
 
         // Measure menu width/height after it becomes visible.
         const menuW = Math.max(220, Math.round(menu.offsetWidth || 0) || 0);
-        const menuH = Math.max(120, Math.round(menu.offsetHeight || 0) || 0);
 
         // Prefer aligning to the right edge of the button (RTL-friendly).
         let left = Math.round(rect.right - menuW);
@@ -287,11 +291,10 @@ function __positionReportsCasesColumnMenu(menu, anchorEl) {
         if (left < pad) left = pad;
         if (left + menuW > vw - pad) left = Math.max(pad, vw - pad - menuW);
 
-        // If it would go off-screen vertically, open upwards.
-        if (top + menuH > vh - pad) {
-            top = Math.round(rect.top - 6 - menuH);
-        }
+        // Always keep menu below header button and limit height to visible viewport
         if (top < pad) top = pad;
+        const availableHeight = Math.max(140, Math.floor(vh - top - pad));
+        menu.style.maxHeight = availableHeight + 'px';
 
         menu.style.left = left + 'px';
         menu.style.top = top + 'px';
@@ -328,6 +331,7 @@ function toggleReportsCasesColumnVisibility(event, columnKey, anchorColumnKey = 
         event.preventDefault();
         event.stopPropagation();
     }
+    closeReportsCasesColumnMenus();
     const currentKeys = __getReportsCasesVisibleColumnKeys();
     const currentSet = new Set(currentKeys);
     if (currentSet.has(columnKey) && currentKeys.length === 1) {
@@ -352,6 +356,7 @@ function hideReportsCasesColumn(event, columnKey) {
         event.preventDefault();
         event.stopPropagation();
     }
+    closeReportsCasesColumnMenus();
     const currentKeys = __getReportsCasesVisibleColumnKeys();
     if (!currentKeys.includes(columnKey)) return;
     if (currentKeys.length === 1) {
@@ -367,28 +372,97 @@ function resetReportsCasesColumns(event) {
         event.preventDefault();
         event.stopPropagation();
     }
+    closeReportsCasesColumnMenus();
     __setReportsCasesVisibleColumnKeys(__reportsCasesDefaultVisibleColumns);
     __renderReportsCasesCurrentTable();
 }
 
 function __buildReportsCasesDocumentTable(sessionsData, relationsData = {}, options = {}) {
     const visibleColumns = __getReportsCasesVisibleColumns();
-    const headerFontSize = options.headerFontSize || '18px';
-    const cellFontSize = options.cellFontSize || '16px';
-    const headerPadding = options.headerPadding || '8px 6px';
-    const cellPadding = options.cellPadding || '6px 6px';
-    const tableStyle = options.tableStyle || 'width: 100%; border-collapse: collapse; margin-top: 8px;';
-    const headerCellStyle = `background-color: #ea580c; color: white; padding: ${headerPadding}; text-align: center; border: 1px solid #c2410c; font-weight: bold; font-size: ${headerFontSize};`;
+    const colCount = visibleColumns.length;
+    const isPdfExport = options.isPdfExport === true;
+
+    // تحديد مقاس الخط والحواشي ديناميكياً وفقاً لعدد الأعمدة ليتناسب حجم النص مع حجم الخلية
+    let defaultHeaderFontSize = '12px';
+    let defaultCellFontSize = '11px';
+    let defaultHeaderPadding = '6px 6px';
+    let defaultCellPadding = '5px 5px';
+
+    if (isPdfExport) {
+        if (colCount >= 7) {
+            defaultHeaderFontSize = '7.5px';
+            defaultCellFontSize = '7px';
+            defaultHeaderPadding = '4px 2px';
+            defaultCellPadding = '3px 2px';
+        } else if (colCount === 6) {
+            defaultHeaderFontSize = '8.5px';
+            defaultCellFontSize = '8px';
+            defaultHeaderPadding = '4px 3px';
+            defaultCellPadding = '4px 3px';
+        } else {
+            defaultHeaderFontSize = '9.5px';
+            defaultCellFontSize = '8.5px';
+            defaultHeaderPadding = '5px 4px';
+            defaultCellPadding = '4px 3px';
+        }
+    }
+
+    const headerFontSize = options.headerFontSize || defaultHeaderFontSize;
+    const cellFontSize = options.cellFontSize || defaultCellFontSize;
+    const headerPadding = options.headerPadding || defaultHeaderPadding;
+    const cellPadding = options.cellPadding || defaultCellPadding;
+    const tableStyle = options.tableStyle || 'width: 100%; border-collapse: collapse; margin-top: 8px; direction: rtl; table-layout: auto; box-sizing: border-box;';
+    const headerCellStyle = `background-color: #ea580c; color: white; padding: ${headerPadding}; text-align: center; border: 1px solid #c2410c; font-weight: bold; font-size: ${headerFontSize}; white-space: nowrap; box-sizing: border-box;`;
+
     const rowsHtml = (Array.isArray(sessionsData) ? sessionsData : []).map((session, index) => {
         const rowData = __getReportsCasesRowData(session, relationsData.caseMap, relationsData.clientNameByCaseId, relationsData.clientByCaseId, relationsData.opponentByCaseId);
         const rowBg = index % 2 === 0 ? '#fff7ed' : '#ffffff';
         const cellsHtml = visibleColumns.map(col => {
-            const value = __escapeReportsCasesHtml(rowData[col.key]);
-            return `<td style="border: 1px solid #ddd; padding: ${cellPadding}; text-align: center; font-size: ${cellFontSize};">${value}</td>`;
+            let rawVal = rowData[col.key];
+            if (isPdfExport && rawVal) {
+                rawVal = String(rawVal).replace(/\s*\/\s*/g, ' - ');
+            }
+            const value = __escapeReportsCasesHtml(rawVal);
+
+            // تخصيص حجم النص وسلوكه وفقاً لحجم الخلية وطبيعة المحتوى
+            let specificCellFontSize = cellFontSize;
+            let extraCellStyle = '';
+
+            const isPhoneCol = col.key === 'clientPhone' || col.key === 'opponentPhone';
+            const isNumberCol = col.key === 'fileNumber' || col.key === 'circuitNumber' || col.key === 'roll';
+            const isCodeCol = col.key === 'caseNumber' || col.key === 'poaNumber' || col.key === 'inventoryNumber' || col.key === 'inventoryYear' || col.key === 'sessionDate';
+
+            if (isPhoneCol) {
+                if (colCount >= 6) {
+                    specificCellFontSize = (parseFloat(cellFontSize) * 0.95).toFixed(1) + 'px';
+                }
+                extraCellStyle = 'white-space: nowrap; direction: ltr; unicode-bidi: embed; letter-spacing: -0.3px;';
+            } else if (isNumberCol || isCodeCol) {
+                extraCellStyle = 'white-space: nowrap;';
+            } else if (col.key === 'court') {
+                extraCellStyle = 'word-break: break-word; line-height: 1.15;';
+            } else {
+                extraCellStyle = 'word-break: break-word; line-height: 1.2;';
+            }
+
+            return `<td style="border: 1px solid #fed7aa; padding: ${cellPadding}; text-align: center; font-size: ${specificCellFontSize}; ${extraCellStyle} box-sizing: border-box; overflow: hidden;">${value}</td>`;
         }).join('');
+
         return `<tr style="background: ${rowBg};">${cellsHtml}</tr>`;
     }).join('');
-    const headerHtml = visibleColumns.map(col => `<th style="${headerCellStyle}">${col.label}</th>`).join('');
+
+    const headerHtml = visibleColumns.map(col => {
+        let colW = '';
+        if (col.key === 'fileNumber' || col.key === 'circuitNumber' || col.key === 'roll') {
+            colW = 'width: 1%; white-space: nowrap;';
+        } else if (col.key === 'caseNumber' || col.key === 'poaNumber' || col.key === 'inventoryNumber' || col.key === 'inventoryYear' || col.key === 'sessionDate' || col.key === 'clientPhone' || col.key === 'opponentPhone') {
+            colW = 'width: 1%; white-space: nowrap;';
+        } else {
+            colW = 'white-space: nowrap;';
+        }
+        return `<th style="${headerCellStyle} ${colW}">${col.label}</th>`;
+    }).join('');
+
     return `
         <table style="${tableStyle}">
             <thead>
@@ -456,13 +530,48 @@ function __getReportsCasesSessionsForAction() {
     return Array.isArray(__reportsCasesAllSessions) ? __reportsCasesAllSessions : [];
 }
 
-function __sortReportsCasesSessions(sessions, sortOrder = currentSessionsSortOrder) {
+let currentCasesSortField = 'caseNumber';
+let currentCasesSortDirection = 'asc';
+
+function __sortReportsCasesSessions(sessions, field = currentCasesSortField, direction = currentCasesSortDirection) {
     const sessionsData = Array.isArray(sessions) ? [...sessions] : [];
+    const caseMap = window.sessionsCasesById || {};
+    const isAsc = direction === 'asc';
+
+    const getVal = (s) => {
+        if (!s) return '';
+        const caseObj = caseMap[String(s.caseId)] || {};
+        if (field === 'fileNumber') {
+            const fn = s.fileNumber != null ? s.fileNumber : caseObj.fileNumber;
+            return fn != null ? String(fn).trim() : '';
+        }
+        if (field === 'inventoryNumber') {
+            const invNum = s.inventoryNumber != null ? s.inventoryNumber : '';
+            const invYear = s.inventoryYear != null ? s.inventoryYear : '';
+            if (invNum && invYear) return `${invNum}/${invYear}`;
+            return String(invNum || '').trim();
+        }
+        if (field === 'court') {
+            const court = s.court != null ? s.court : caseObj.court;
+            return court != null ? String(court).trim() : '';
+        }
+        // default: caseNumber
+        const cn = s.caseNumber != null ? s.caseNumber : caseObj.caseNumber;
+        const cy = s.caseYear != null ? s.caseYear : caseObj.caseYear;
+        if (cn && cy) return `${cn}/${cy}`;
+        return String(cn || '').trim();
+    };
+
     sessionsData.sort((a, b) => {
-        const dateA = new Date((a && (a.sessionDate || a.createdAt || a.id)) || 0);
-        const dateB = new Date((b && (b.sessionDate || b.createdAt || b.id)) || 0);
-        return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
+        const valA = getVal(a);
+        const valB = getVal(b);
+        if (!valA && !valB) return 0;
+        if (!valA) return 1;
+        if (!valB) return -1;
+        const res = String(valA).localeCompare(String(valB), 'ar', { numeric: true, sensitivity: 'base' });
+        return isAsc ? res : -res;
     });
+
     return sessionsData;
 }
 
@@ -500,33 +609,25 @@ async function updateSessionsReportContent(reportName, reportType) {
                     </div>
                     <div class="flex items-center justify-center md:justify-start gap-2 w-full md:w-auto">
                         <div class="relative">
-                            <button id="cases-view-menu-btn" onclick="toggleCasesViewMenu()" class="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors">
+                            <button id="cases-view-menu-btn" onclick="toggleCasesViewMenu()" class="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors font-medium">
                                 <i class="ri-filter-3-line"></i>
-                                <span data-cases-view-label>الكل • الأحدث</span>
+                                <span data-cases-view-label>فرز</span>
                                 <i class="ri-arrow-down-s-line text-sm"></i>
                             </button>
-                            <div id="cases-view-menu" class="hidden absolute left-0 mt-1 bg-white rounded-lg shadow-lg border border-gray-200 z-50 min-w-[220px] overflow-hidden">
-                                <div class="px-3 py-2 text-xs font-bold text-gray-500 bg-gray-50">فلترة القضايا</div>
-                                <button type="button" onclick="setCasesTimeFilterMode('all')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>الكل</span>
-                                </button>
-                                <button type="button" onclick="setCasesTimeFilterMode('today')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>اليوم</span>
-                                </button>
-                                <button type="button" onclick="setCasesTimeFilterMode('week')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>الاسبوع</span>
-                                </button>
-                                <button type="button" onclick="setCasesTimeFilterMode('month')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>الشهر</span>
-                                </button>
-                                <div class="border-t border-gray-200"></div>
-                                <div class="px-3 py-2 text-xs font-bold text-gray-500 bg-gray-50">الترتيب</div>
-                                <button type="button" onclick="setCasesSortOrder('desc')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>الأحدث</span><i class="ri-time-line text-gray-600"></i>
-                                </button>
-                                <button type="button" onclick="setCasesSortOrder('asc')" class="w-full text-right px-4 py-2 hover:bg-gray-100 flex items-center justify-between">
-                                    <span>الأقدم</span><i class="ri-history-line text-gray-600"></i>
-                                </button>
+                            <div id="cases-view-menu" class="hidden absolute right-0 mt-1 rounded-xl shadow-2xl z-50 p-2.5" style="min-width: 250px; width: 260px; max-width: 90vw; box-sizing: border-box; background-color: #e2e8f0; border: 1px solid #94a3b8;">
+                                <div class="text-[11px] font-bold text-slate-700 mb-1.5 text-right px-0.5">ترتيب القضايا</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 6px;">
+                                    <button type="button" data-field-mode="caseNumber" onclick="setCasesSortField('caseNumber')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">رقم القضية</button>
+                                    <button type="button" data-field-mode="fileNumber" onclick="setCasesSortField('fileNumber')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">رقم الملف</button>
+                                    <button type="button" data-field-mode="inventoryNumber" onclick="setCasesSortField('inventoryNumber')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">رقم الحصر</button>
+                                    <button type="button" data-field-mode="court" onclick="setCasesSortField('court')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">المحكمة</button>
+                                </div>
+                                <div style="border-top: 1px solid #cbd5e1; margin: 6px 0;"></div>
+                                <div class="text-[11px] font-bold text-slate-700 mb-1.5 text-right px-0.5">الاتجاه</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                    <button type="button" data-direction-mode="asc" onclick="setCasesSortDirection('asc')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">تصاعدي</button>
+                                    <button type="button" data-direction-mode="desc" onclick="setCasesSortDirection('desc')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">تنازلي</button>
+                                </div>
                             </div>
                         </div>
                         <div class="relative">
@@ -555,7 +656,7 @@ async function updateSessionsReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="sessions-report-content">
+                <div class="bg-white rounded-lg border border-gray-200 p-0 relative flex-1 min-h-0 flex flex-col overflow-hidden" id="sessions-report-content">
                     <div class="flex items-center justify-center py-12 text-gray-400">
                         <i class="ri-loader-4-line animate-spin text-3xl ml-2"></i>
                         <span>جاري إعداد تقرير القضايا...</span>
@@ -566,8 +667,10 @@ async function updateSessionsReportContent(reportName, reportType) {
 
         __reportsCasesTimeFilterMode = 'all';
         __reportsCasesSearchTerm = '';
-        currentSessionsSortOrder = 'desc';
-        __reportsCasesCurrentSessions = __sortReportsCasesSessions(__reportsCasesAllSessions, currentSessionsSortOrder);
+        currentCasesSortField = 'caseNumber';
+        currentCasesSortDirection = 'asc';
+        currentSessionsSortOrder = 'asc';
+        __reportsCasesCurrentSessions = __sortReportsCasesSessions(__reportsCasesAllSessions, currentCasesSortField, currentCasesSortDirection);
         __reportsCasesUpdateViewMenuButtonLabel();
         __renderReportsCasesCurrentTable();
 
@@ -601,6 +704,7 @@ async function updateSessionsReportContent(reportName, reportType) {
 let __reportsCasesChunkTimer = null;
 
 function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
+    __cleanupDetachedCasesColumnMenus();
     if (__reportsCasesChunkTimer) {
         cancelAnimationFrame(__reportsCasesChunkTimer);
         __reportsCasesChunkTimer = null;
@@ -618,7 +722,7 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
     }
 
     const visibleColumns = __getReportsCasesVisibleColumns();
-    const columnWidth = (100 / Math.max(visibleColumns.length, 1)).toFixed(2);
+    const totalTableMinWidth = visibleColumns.reduce((sum, col) => sum + (parseInt(col.minWidth || '130', 10)), 0);
     let sessionsData = [...sessions];
     sessionsData.sort((a, b) => {
         const dateA = new Date(a.sessionDate || a.createdAt || a.id);
@@ -637,7 +741,7 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
         const cellsHtml = visibleColumns.map(col => {
             const value = __escapeReportsCasesHtml(rowData[col.key]);
             return `
-                <td class="py-2 px-3 md:py-4 md:px-6 text-center border-l border-gray-200 align-top">
+                <td class="py-2 px-3 md:py-4 md:px-6 text-center border-l border-gray-200 align-top" style="min-width: ${col.minWidth || '120px'};">
                     <div class="font-bold text-sm md:text-base text-gray-800 hover:text-orange-700 transition-colors duration-200 ${col.cellClass}" title="${value}">${value}</div>
                 </td>
             `;
@@ -653,7 +757,7 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
     const initialRows = sessionsData.slice(0, initialBatchSize).map((s, i) => buildRowHtml(s, i)).join('');
 
     const headerHtml = visibleColumns.map(col => `
-        <th style="position: sticky; top: 0; z-index: 20; width: ${columnWidth}%; min-width: 150px; background-color: #ea580c !important; color: white !important; border-color: #f97316 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #f97316;">
+        <th style="position: sticky; top: 0; z-index: 20; min-width: ${col.minWidth || '120px'}; background-color: #ea580c !important; color: white !important; border-color: #f97316 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #f97316;">
             <div class="relative flex items-center justify-center">
                 <button type="button" onclick="toggleReportsCasesColumnMenu(event, '${col.key}')" class="reports-cases-column-toggle-btn w-full inline-flex items-center justify-center gap-2 text-white font-semibold" style="min-height: 36px;">
                     <i class="${col.icon} text-sm"></i>
@@ -687,9 +791,9 @@ function generateSessionsReportHTML(sessions, sortOrder = 'desc') {
     }
 
     return `
-        <div class="sessions-report-container" style="height: 100%; overflow-y: auto; position: relative;">
-            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 overflow-x-auto">
-                <table class="w-full border-separate" style="border-spacing: 0; table-layout: fixed; min-width: ${visibleColumns.length * 150}px;">
+        <div class="sessions-report-container flex-1 min-h-0 flex flex-col" style="height: 100%; position: relative;">
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 flex-1 min-h-0 overflow-auto" style="-webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior: contain;">
+                <table class="w-full border-separate" style="border-spacing: 0; min-width: ${Math.max(totalTableMinWidth, 600)}px;">
                     <thead style="position: sticky; top: 0; z-index: 20;">
                         <tr class="text-white shadow-lg" style="background-color: #ea580c !important;">
                             ${headerHtml}
@@ -724,7 +828,7 @@ function __reportsCasesUpdateViewMenuButtonLabel() {
         if (!btn) return;
         const textEl = btn.querySelector('[data-cases-view-label]');
         if (!textEl) return;
-        textEl.textContent = `${__reportsCasesGetViewModeLabel()} • ${__reportsCasesGetSortLabel()}`;
+        textEl.textContent = 'فرز';
     } catch (_) { }
 }
 
@@ -788,7 +892,8 @@ function __reportsCasesDedupLatestSessionByCaseId(sessions) {
 }
 
 function __reportsCasesNormalizeSearchValue(value) {
-    return String(value || '')
+    const s = window.normalizeDigits ? window.normalizeDigits(value) : String(value || '');
+    return s
         .toLowerCase()
         .replace(/[أإآ]/g, 'ا')
         .replace(/ة/g, 'ه')
@@ -800,27 +905,53 @@ function __reportsCasesNormalizeSearchValue(value) {
 function __reportsCasesApplyViewModeAndRender() {
     try {
         const base = Array.isArray(__reportsCasesAllSessions) ? __reportsCasesAllSessions : [];
-        const filtered = base.filter(__reportsCasesIsInTimeFilter);
-        const isCasesOnly = __reportsCasesTimeFilterMode !== 'all';
-        const listBeforeSearch = isCasesOnly ? __reportsCasesDedupLatestSessionByCaseId(filtered) : filtered;
-
         const searchLower = __reportsCasesNormalizeSearchValue(__reportsCasesSearchTerm);
         const visibleColumns = __getReportsCasesVisibleColumns();
         const visibleKeys = visibleColumns.map(col => col.key);
-        const finalList = !searchLower ? listBeforeSearch : listBeforeSearch.filter(session => {
+        const finalList = !searchLower ? base : base.filter(session => {
             const rowData = __getReportsCasesRowData(session);
             return visibleKeys.some(key => __reportsCasesNormalizeSearchValue(rowData[key]).includes(searchLower));
         });
 
-        __reportsCasesCurrentSessions = __sortReportsCasesSessions(finalList, currentSessionsSortOrder);
+        __reportsCasesCurrentSessions = __sortReportsCasesSessions(finalList, currentCasesSortField, currentCasesSortDirection);
         __reportsCasesUpdateViewMenuButtonLabel();
         __renderReportsCasesCurrentTable();
+    } catch (_) { }
+}
 
-        try {
-            if (__reportsCasesTimeFilterMode !== 'all' && typeof showToast === 'function') {
-                showToast(`عرض ${__reportsCasesCurrentSessions.length} قضية (${__reportsCasesGetViewModeLabel()})`, 'info');
+function __reportsCasesUpdateActiveTiles() {
+    try {
+        const fieldButtons = document.querySelectorAll('#cases-view-menu [data-field-mode]');
+        fieldButtons.forEach(btn => {
+            const mode = btn.getAttribute('data-field-mode');
+            if (mode === currentCasesSortField) {
+                btn.style.backgroundColor = '#dbeafe';
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#1d4ed8';
+                btn.style.fontWeight = 'bold';
+            } else {
+                btn.style.backgroundColor = '#ffffff';
+                btn.style.borderColor = '#cbd5e1';
+                btn.style.color = '#334155';
+                btn.style.fontWeight = 'normal';
             }
-        } catch (_) { }
+        });
+
+        const dirButtons = document.querySelectorAll('#cases-view-menu [data-direction-mode]');
+        dirButtons.forEach(btn => {
+            const mode = btn.getAttribute('data-direction-mode');
+            if (mode === currentCasesSortDirection) {
+                btn.style.backgroundColor = '#dbeafe';
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#1d4ed8';
+                btn.style.fontWeight = 'bold';
+            } else {
+                btn.style.backgroundColor = '#ffffff';
+                btn.style.borderColor = '#cbd5e1';
+                btn.style.color = '#334155';
+                btn.style.fontWeight = 'normal';
+            }
+        });
     } catch (_) { }
 }
 
@@ -828,26 +959,35 @@ function toggleCasesViewMenu() {
     try {
         const menu = document.getElementById('cases-view-menu');
         if (!menu) return;
-        menu.classList.toggle('hidden');
+        const isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+            __reportsCasesUpdateActiveTiles();
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
     } catch (_) { }
 }
 
-function setCasesTimeFilterMode(mode) {
-    const m = String(mode || '').trim();
-    if (m === 'today' || m === 'week' || m === 'month' || m === 'all') {
-        __reportsCasesTimeFilterMode = m;
-    } else {
-        __reportsCasesTimeFilterMode = 'all';
-    }
+function setCasesSortField(field) {
+    currentCasesSortField = field || 'caseNumber';
+    __reportsCasesUpdateActiveTiles();
     __reportsCasesApplyViewModeAndRender();
-    try { toggleCasesViewMenu(); } catch (_) { }
+    const menu = document.getElementById('cases-view-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+function setCasesSortDirection(direction) {
+    currentCasesSortDirection = direction || 'asc';
+    currentSessionsSortOrder = direction || 'asc';
+    __reportsCasesUpdateActiveTiles();
+    __reportsCasesApplyViewModeAndRender();
+    const menu = document.getElementById('cases-view-menu');
+    if (menu) menu.classList.add('hidden');
 }
 
 function setCasesSortOrder(mode) {
-    const m = String(mode || '').trim();
-    currentSessionsSortOrder = (m === 'asc') ? 'asc' : 'desc';
-    __reportsCasesApplyViewModeAndRender();
-    try { toggleCasesViewMenu(); } catch (_) { }
+    setCasesSortDirection(mode);
 }
 
 
@@ -896,7 +1036,7 @@ async function printSessionsReport() {
                     <div style="color: #666; font-size: 14px; text-align: center;">${new Date().toLocaleDateString(__reportsCasesDateLocaleCache || 'ar-EG')} | ${new Date().toLocaleTimeString(__reportsCasesDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
                     <div style="color: #666; font-size: 14px; text-align: left;">${officeName}</div>
                 </div>
-                ${__buildReportsCasesDocumentTable(sessionsData, relationsData, { headerFontSize: '18px', cellFontSize: '16px', headerPadding: '8px 6px', cellPadding: '6px 6px' })}
+                ${__buildReportsCasesDocumentTable(sessionsData, relationsData, { headerFontSize: '13px', cellFontSize: '12px', headerPadding: '6px 6px', cellPadding: '6px 6px' })}
             </div>
         `;
 
@@ -910,8 +1050,8 @@ async function printSessionsReport() {
             <title>تقرير القضايا - ${new Date().toLocaleDateString(__reportsCasesDateLocaleCache || 'ar-EG')}</title>
             <style>
                 @page {
-                    size: A4;
-                    margin: 10mm;
+                    size: A4 portrait;
+                    margin: 8mm;
                 }
                 
                 * {
@@ -1022,6 +1162,150 @@ async function exportSessionsReport() {
 }
 
 
+// -------------------------------------------------------------
+// بناء صفحات PDF ديناميكية ذكية ومقاسة لمنع قص الصفوف (Smart Dynamic PDF Pagination)
+// -------------------------------------------------------------
+async function __buildReportsCasesPdfPagesHTML(sessionsData, relationsData = {}, officeName = 'المحامى الرقمى', opt = {}) {
+    const visibleColumns = __getReportsCasesVisibleColumns();
+    const colCount = visibleColumns.length;
+
+    // مقاس الخط والحواشي للـ PDF وفقاً لعدد الأعمدة الظاهرة
+    let headerFontSize = '9.5px';
+    let cellFontSize = '8.5px';
+    let headerPadding = '5px 4px';
+    let cellPadding = '4px 3px';
+
+    if (colCount >= 7) {
+        headerFontSize = '7.5px';
+        cellFontSize = '7px';
+        headerPadding = '4px 2px';
+        cellPadding = '3px 2px';
+    } else if (colCount === 6) {
+        headerFontSize = '8.5px';
+        cellFontSize = '8px';
+        headerPadding = '4px 3px';
+        cellPadding = '4px 3px';
+    }
+
+    const tableStyle = 'width: 100%; border-collapse: collapse; margin-top: 6px; direction: rtl; table-layout: auto; box-sizing: border-box;';
+    const headerCellStyle = `background-color: #ea580c; color: white; padding: ${headerPadding}; text-align: center; border: 1px solid #c2410c; font-weight: bold; font-size: ${headerFontSize}; white-space: nowrap; box-sizing: border-box;`;
+
+    const headerThs = visibleColumns.map(col => {
+        let colW = '';
+        if (col.key === 'fileNumber' || col.key === 'circuitNumber' || col.key === 'roll') {
+            colW = 'width: 1%; white-space: nowrap;';
+        } else if (col.key === 'caseNumber' || col.key === 'poaNumber' || col.key === 'inventoryNumber' || col.key === 'inventoryYear' || col.key === 'sessionDate' || col.key === 'clientPhone' || col.key === 'opponentPhone') {
+            colW = 'width: 1%; white-space: nowrap;';
+        } else {
+            colW = 'white-space: nowrap;';
+        }
+        return `<th style="${headerCellStyle} ${colW}">${col.label}</th>`;
+    }).join('');
+
+    const headerHtml = `<thead><tr>${headerThs}</tr></thead>`;
+
+    // بناء كود HTML لكل صف على حدة
+    const allRowsHtml = (Array.isArray(sessionsData) ? sessionsData : []).map((session, index) => {
+        const rowData = __getReportsCasesRowData(session, relationsData.caseMap, relationsData.clientNameByCaseId, relationsData.clientByCaseId, relationsData.opponentByCaseId);
+        const rowBg = index % 2 === 0 ? '#fff7ed' : '#ffffff';
+        const cellsHtml = visibleColumns.map(col => {
+            let rawVal = rowData[col.key];
+            if (rawVal) {
+                rawVal = String(rawVal).replace(/\s*\/\s*/g, ' - ');
+            }
+            const value = __escapeReportsCasesHtml(rawVal);
+
+            let specificCellFontSize = cellFontSize;
+            let extraCellStyle = '';
+
+            const isPhoneCol = col.key === 'clientPhone' || col.key === 'opponentPhone';
+            const isNumberCol = col.key === 'fileNumber' || col.key === 'circuitNumber' || col.key === 'roll';
+            const isCodeCol = col.key === 'caseNumber' || col.key === 'poaNumber' || col.key === 'inventoryNumber' || col.key === 'inventoryYear' || col.key === 'sessionDate';
+
+            if (isPhoneCol) {
+                if (colCount >= 6) {
+                    specificCellFontSize = (parseFloat(cellFontSize) * 0.95).toFixed(1) + 'px';
+                }
+                extraCellStyle = 'white-space: nowrap; direction: ltr; unicode-bidi: embed; letter-spacing: -0.3px;';
+            } else if (isNumberCol || isCodeCol) {
+                extraCellStyle = 'white-space: nowrap;';
+            } else if (col.key === 'court') {
+                extraCellStyle = 'word-break: break-word; line-height: 1.15;';
+            } else {
+                extraCellStyle = 'word-break: break-word; line-height: 1.2;';
+            }
+
+            return `<td style="border: 1px solid #fed7aa; padding: ${cellPadding}; text-align: center; font-size: ${specificCellFontSize}; ${extraCellStyle} box-sizing: border-box; overflow: hidden;">${value}</td>`;
+        }).join('');
+
+        return `<tr style="background: ${rowBg};">${cellsHtml}</tr>`;
+    });
+
+    if (allRowsHtml.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.innerHTML = `<div style="text-align: center; padding: 20px;">لا توجد بيانات</div>`;
+        const worker = html2pdf().set(opt).from(emptyDiv);
+        await worker.toPdf();
+        return await worker.get('pdf');
+    }
+
+    // عدد الصفوف المتوازن والممتلئ في كل صفحة A4 (16 صفاً يملأ الصفحة بشكل ممتاز وآمن تماماً)
+    const ROWS_PER_PAGE = 16;
+    const pages = [];
+    for (let i = 0; i < allRowsHtml.length; i += ROWS_PER_PAGE) {
+        pages.push(allRowsHtml.slice(i, i + ROWS_PER_PAGE));
+    }
+
+    const currentDate = new Date().toLocaleDateString(__reportsCasesDateLocaleCache || 'ar-EG');
+    const currentTime = new Date().toLocaleTimeString(__reportsCasesDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const totalPages = pages.length;
+
+    // بناء حاويات صفحات منفصلة لكل صفحة A4 برأسها المستقل الكامل في القمة
+    const pageElements = pages.map((pageRows, pageIdx) => {
+        const div = document.createElement('div');
+        div.style.direction = 'rtl';
+        div.style.boxSizing = 'border-box';
+        div.style.padding = '4px 6px';
+        div.style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif";
+
+        const pageNumberLabel = totalPages > 1 ? `<span style="font-size: 9px; color: #64748b; font-weight: normal; margin-right: 6px;">${pageIdx + 1}</span>` : '';
+
+        div.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 4px 6px; border-bottom: 1px solid #cbd5e1; margin-bottom: 8px;">
+                <div style="color: #1e40af; font-size: 10px; font-weight: bold; text-align: right;">
+                    تقرير القضايا ${pageNumberLabel}
+                </div>
+                <div style="color: #666; font-size: 7px; text-align: center;">${currentDate} | ${currentTime}</div>
+                <div style="color: #666; font-size: 7px; text-align: left;">${officeName}</div>
+            </div>
+            <table style="${tableStyle}">
+                ${headerHtml}
+                <tbody>
+                    ${pageRows.join('')}
+                </tbody>
+            </table>
+        `;
+        return div;
+    });
+
+    // توليد PDF متعدد الصفحات نظيف تماماً: كل صفحة A4 ترسم كـ Canvas مستقل دون تقطيع أو صفحات فارغة
+    const firstWorker = html2pdf().set(opt).from(pageElements[0]);
+    await firstWorker.toPdf();
+    const pdf = await firstWorker.get('pdf');
+    const pageSize = await firstWorker.get('pageSize');
+
+    for (let i = 1; i < pageElements.length; i++) {
+        const pageCanvas = await html2pdf().set(opt).from(pageElements[i]).toCanvas().get('canvas');
+        pdf.addPage();
+        const imgData = pageCanvas.toDataURL('image/' + (opt.image?.type || 'jpeg'), opt.image?.quality || 0.95);
+        const imgWidth = pageSize.inner.width;
+        const imgHeight = pageCanvas.height * imgWidth / pageCanvas.width;
+        pdf.addImage(imgData, (opt.image?.type || 'jpeg').toUpperCase(), opt.margin[1], opt.margin[0], imgWidth, imgHeight);
+    }
+
+    return pdf;
+}
+
 async function exportSessionsReportPDF() {
     try {
         if (window.electronAPI && typeof window.electronAPI.checkClientsPathOnDesktop === 'function') {
@@ -1043,30 +1327,23 @@ async function exportSessionsReportPDF() {
         const { sessionsData, relationsData } = await __getReportsCasesPreparedActionData();
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
 
-        const element = document.createElement('div');
-        element.style.direction = 'rtl';
-        element.innerHTML = `
-            <div style="font-family: Arial, sans-serif; direction: rtl; padding: 8px;">
-                <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 4px 8px; border-bottom: 1px solid #cbd5e1; margin-bottom: 10px;">
-                    <div style="color: #1e40af; font-size: 10px; font-weight: bold; text-align: right;">تقرير القضايا</div>
-                    <div style="color: #666; font-size: 7px; text-align: center;">${new Date().toLocaleDateString(__reportsCasesDateLocaleCache || 'ar-EG')} | ${new Date().toLocaleTimeString(__reportsCasesDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
-                    <div style="color: #666; font-size: 7px; text-align: left;">${officeName}</div>
-                </div>
-                ${__buildReportsCasesDocumentTable(sessionsData, relationsData, { headerFontSize: '10px', cellFontSize: '9px', headerPadding: '6px 6px', cellPadding: '5px 5px' })}
-            </div>
-        `;
+        const isMobile = typeof isElectronApp === 'function' ? !isElectronApp() : true;
+        const html2canvasOpt = { scale: 2, letterRendering: true, imageTimeout: 0 };
+        if (isMobile) {
+            html2canvasOpt.windowWidth = 1200;
+        }
 
         const opt = {
-            margin: [8, 10, 8, 10],
+            margin: [8, 5, 8, 5],
             filename: `تقرير_القضايا_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            html2canvas: html2canvasOpt,
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         showToast('جاري إنشاء ملف PDF...', 'info');
-        await html2pdf().set(opt).from(element).save();
+        const pdf = await __buildReportsCasesPdfPagesHTML(sessionsData, relationsData, officeName, opt);
+        pdf.save(opt.filename);
         showToast('تم تصدير PDF بنجاح', 'success');
         toggleExportMenuCases();
 
@@ -1080,13 +1357,25 @@ async function exportSessionsReportWhatsApp() {
     try {
         const { sessionsData, relationsData } = await __getReportsCasesPreparedActionData();
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
-        const element = document.createElement('div');
-        element.style.direction = 'rtl';
-        element.innerHTML = `<div style="font-family: Arial, sans-serif; direction: rtl; padding: 8px;"><div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 4px 8px; border-bottom: 1px solid #cbd5e1; margin-bottom: 10px;"><div style="color: #1e40af; font-size: 10px; font-weight: bold; text-align: right;">تقرير القضايا</div><div style="color: #666; font-size: 7px; text-align: center;">${new Date().toLocaleDateString(__reportsCasesDateLocaleCache || 'ar-EG')} | ${new Date().toLocaleTimeString(__reportsCasesDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' })}</div><div style="color: #666; font-size: 7px; text-align: left;">${officeName}</div></div>${__buildReportsCasesDocumentTable(sessionsData, relationsData, { headerFontSize: '10px', cellFontSize: '9px', headerPadding: '6px 6px', cellPadding: '5px 5px' })}</div>`;
-        const opt = { margin: [8, 10, 8, 10], filename: `تقرير_القضايا_${new Date().toISOString().split('T')[0]}.pdf`, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, letterRendering: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } };
+
+        const isMobile = typeof isElectronApp === 'function' ? !isElectronApp() : true;
+        const html2canvasOpt = { scale: 2, letterRendering: true, imageTimeout: 0 };
+        if (isMobile) {
+            html2canvasOpt.windowWidth = 1200;
+        }
+
+        const opt = {
+            margin: [8, 5, 8, 5],
+            filename: `تقرير_القضايا_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: html2canvasOpt,
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
         showToast('جاري إنشاء التقرير للمشاركة...', 'info');
         toggleExportMenuCases();
-        const blob = await html2pdf().set(opt).from(element).outputPdf('blob');
+        const pdf = await __buildReportsCasesPdfPagesHTML(sessionsData, relationsData, officeName, opt);
+        const blob = pdf.output('blob');
         if (typeof shareReportPdfAsFile === 'function') await shareReportPdfAsFile(blob, opt.filename);
         else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = opt.filename; a.click(); URL.revokeObjectURL(a.href); window.open('https://wa.me/?text=' + encodeURIComponent('تقرير PDF مرفق'), '_blank'); showToast('تم تحميل التقرير. يمكنك إرفاقه في واتساب.', 'success'); }
     } catch (error) {

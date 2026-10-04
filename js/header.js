@@ -6,6 +6,21 @@
             try { return !!(typeof window !== 'undefined' && window.electronAPI); } catch (_) { return false; }
         })();
 
+        // إجبار فتح صفحات التطبيق من تطبيق PWA المثبت فقط (أو كود الاختبار السري)
+        try {
+            if (!isDesktopApp) {
+                const isSetupPage = /\/setup\.html$/i.test(location.pathname || '') || /setup\.html$/i.test(location.href || '');
+                if (!isSetupPage) {
+                    const isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || (window.navigator && window.navigator.standalone);
+                    const isTestUnlocked = String(sessionStorage.getItem('lawyer_app_test_unlocked') || '') === 'true';
+                    if (!isStandalone && !isTestUnlocked) {
+                        window.location.replace('setup.html');
+                        return;
+                    }
+                }
+            }
+        } catch (_) { }
+
         try {
             if (isDesktopApp && document.body && document.body.classList) {
                 document.body.classList.add('law-desktop');
@@ -460,7 +475,11 @@ async function updateCountersInHeader() {
 }
 
 function getCurrentDate() {
-    return new Date().toISOString().split('T')[0];
+    const d = new Date();
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${day}`;
 }
 function enqueueAlert(src) {
     try {
@@ -668,6 +687,94 @@ async function startDateAlternation() {
     setInterval(updateDisplay, 4000);
 }
 
+function checkPendingAccessDeniedToast() {
+    try {
+        const pendingMsg = sessionStorage.getItem('pending_access_denied_toast');
+        if (pendingMsg) {
+            sessionStorage.removeItem('pending_access_denied_toast');
+            setTimeout(() => {
+                try {
+                    if (typeof showToast === 'function') showToast(pendingMsg, 'error');
+                    else alert(pendingMsg);
+                } catch (_) { }
+            }, 300);
+        }
+    } catch (_) { }
+}
+
+async function enforcePageFeaturePermissions() {
+    try {
+        const isSetupRunning = (function () {
+            try {
+                if (typeof location === 'undefined') return false;
+                return /\/setup\.html$/i.test(location.pathname || '') || /setup\.html$/i.test(location.href || '');
+            } catch (_) { return false; }
+        })();
+        if (isSetupRunning) return true;
+
+        if (sessionStorage.getItem('auth_ok') !== '1') return true;
+
+        const isAdmin = (sessionStorage.getItem('current_is_admin') === '1');
+        if (isAdmin) return true;
+
+        const path = (window.location.pathname || '').toLowerCase();
+        let pageName = path.split('/').pop().replace(/\?.*$/, '').replace(/#.*$/, '').trim() || 'index.html';
+
+        if (pageName === 'index.html' || pageName === '' || pageName === 'setup.html' || pageName === 'barcode.html' || pageName === 'archive.html') {
+            return true;
+        }
+
+        if (pageName === 'settings.html') {
+            try { sessionStorage.setItem('pending_access_denied_toast', 'غير مسموح لك بفتح الإعدادات'); } catch (_) { }
+            window.location.replace('index.html');
+            return false;
+        }
+
+        const pageFeatureMap = {
+            'accounts.html': { id: 'accounts', label: 'الحسابات' },
+            'sessions.html': { id: 'sessions', label: 'الجلسات' },
+            'session-edit.html': { id: 'sessions', label: 'الجلسات' },
+            'clerk-papers.html': { id: 'clerk-papers', label: 'أوراق المحضرين' },
+            'expert-sessions.html': { id: 'expert-sessions', label: 'جلسات الخبراء' },
+            'administrative.html': { id: 'administrative', label: 'المهام' },
+            'reports.html': { id: 'reports', label: 'التقارير' },
+            'services.html': { id: 'services', label: 'الخدمات' },
+            'legal-library.html': { id: 'legal-library', label: 'المكتبة القانونية' },
+            'new.html': { id: 'new', label: 'قضية جديدة' },
+            'search.html': { id: 'search', label: 'قضايا الموكلين' },
+            'client-view.html': { id: 'search', label: 'قضايا الموكلين' },
+            'case-info.html': { id: 'search', label: 'قضايا الموكلين' }
+        };
+
+        const target = pageFeatureMap[pageName];
+        if (target) {
+            try {
+                if (typeof initDB === 'function') {
+                    try { await initDB(); } catch (_) { }
+                }
+            } catch (_) { }
+
+            let isDenied = false;
+            try {
+                if (typeof isFeatureDeniedForCurrentUser === 'function') {
+                    isDenied = await isFeatureDeniedForCurrentUser(target.id);
+                }
+            } catch (_) { isDenied = false; }
+
+            if (isDenied) {
+                try {
+                    sessionStorage.setItem('pending_access_denied_toast', `غير مسموح لك بالوصول إلى: ${target.label}`);
+                } catch (_) { }
+                window.location.replace('index.html');
+                return false;
+            }
+        }
+        return true;
+    } catch (e) {
+        return true;
+    }
+}
+
 async function enforceAppPassword() {
     try {
         if (typeof initDB === 'function') {
@@ -684,7 +791,7 @@ async function enforceAppPassword() {
         } catch (e) { }
 
         try {
-            if (bootstrap && bootstrap.created === true) {
+            if (bootstrap && bootstrap.created === true && !bootstrap.hasPassword) {
                 sessionStorage.setItem('auth_ok', '1');
                 sessionStorage.setItem('current_user_id', String(bootstrap.id || ''));
                 sessionStorage.setItem('current_username', 'Admin');
@@ -732,9 +839,12 @@ async function enforceAppPassword() {
 
         const singleUser = (Array.isArray(users) && users.length === 1) ? users[0] : null;
 
+        if (document.getElementById('password-overlay')) return;
+
         const overlay = document.createElement('div');
         overlay.id = 'password-overlay';
         overlay.className = 'fixed inset-0 z-[9999] flex items-center justify-center bg-black';
+        overlay.style.cssText = 'position:fixed;inset:0;background-color:#000000;z-index:2147483647;display:flex;align-items:center;justify-content:center;';
         overlay.innerHTML = `
             <div class="bg-white rounded-lg w-[95vw] max-w-xl p-8 border border-gray-200">
                 <div class="flex items-center justify-center gap-2 mb-4">
@@ -750,7 +860,7 @@ async function enforceAppPassword() {
                             ${(users || []).map(u => `<option value="${escapeAttr(String(u.id))}">${escapeAttr(String(u.username || ''))}</option>`).join('')}
                         </select>
                     `}
-                    <input id="app-login-password" type="password" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-center text-lg" placeholder="كلمة المرور" autocomplete="current-password">
+                    <input id="app-login-password" type="password" maxlength="15" class="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-500 focus:border-pink-500 text-center text-lg" placeholder="كلمة المرور" autocomplete="current-password">
                     <div id="app-login-error" class="text-red-600 text-sm text-center -mt-2 min-h-[1rem]"></div>
                     <button id="app-login-btn" class="w-full py-4 bg-pink-600 hover:bg-pink-700 text-white rounded-lg text-lg">دخول</button>
                 </form>
@@ -784,6 +894,7 @@ async function enforceAppPassword() {
                 overlay.remove();
                 try { document.body.style.overflow = ''; } catch (e) { }
                 try { if (typeof updateCountersInHeader === 'function') updateCountersInHeader(); } catch (e) { }
+                try { await enforcePageFeaturePermissions(); } catch (e) { }
                 return;
             }
 
@@ -800,7 +911,21 @@ async function enforceAppPassword() {
                 if (input) input.focus();
                 return;
             }
-            if (valRaw === storedPass) {
+            let matches = (valRaw === storedPass);
+            if (!matches && (user.isAdmin === true || String(user.username || '').toLowerCase() === 'admin')) {
+                try {
+                    const plain = await (typeof getSetting === 'function' ? getSetting('appPasswordPlain') : '');
+                    if (plain && String(plain) === valRaw) {
+                        matches = true;
+                        try {
+                            if (typeof updateUser === 'function' && user.id != null) {
+                                await updateUser(user.id, { password: valRaw });
+                            }
+                        } catch (_) { }
+                    }
+                } catch (_) { }
+            }
+            if (matches) {
                 sessionStorage.setItem('auth_ok', '1');
                 sessionStorage.setItem('current_user_id', String(user.id || ''));
                 sessionStorage.setItem('current_username', String(user.username || ''));
@@ -808,13 +933,20 @@ async function enforceAppPassword() {
                 overlay.remove();
                 try { document.body.style.overflow = ''; } catch (e) { }
                 try { if (typeof updateCountersInHeader === 'function') updateCountersInHeader(); } catch (e) { }
+                try { await enforcePageFeaturePermissions(); } catch (e) { }
             } else {
                 showError('كلمة المرور غير صحيحة');
                 if (input) { input.focus(); input.select(); }
             }
         };
         form.addEventListener('submit', (e) => { e.preventDefault(); doCheck(); });
-        if (input) input.addEventListener('input', clearError);
+        if (input) {
+            input.addEventListener('input', () => {
+                clearError();
+                const sanitized = (input.value || '').replace(/\D/g, '').slice(0, 15);
+                if (input.value !== sanitized) input.value = sanitized;
+            });
+        }
 
         if (userSelect && userSelect.tagName === 'SELECT') userSelect.addEventListener('change', () => { try { clearError(); } catch (e) { } });
         setTimeout(() => { try { if (input) input.focus(); } catch (e) { } }, 50);
@@ -822,6 +954,18 @@ async function enforceAppPassword() {
 }
 
 window.addEventListener('DOMContentLoaded', async () => {
+    try {
+        checkPendingAccessDeniedToast();
+        if (typeof enforceAppPassword === 'function') {
+            const isSetupRunning = /\/setup\.html$/i.test(window.location.pathname || '');
+            const isSetupDone = String(localStorage.getItem('lawyer_app_setup_completed') || '') === 'true';
+            if (!isSetupRunning && isSetupDone) {
+                try { await enforceAppPassword(); } catch (_) { }
+            }
+        }
+        try { await enforcePageFeaturePermissions(); } catch (_) { }
+    } catch (_) { }
+
     try {
 
         try {
@@ -929,11 +1073,11 @@ window.addEventListener('DOMContentLoaded', async () => {
                     getTodayExpertSessionsCount(),
                     getTomorrowExpertSessionsCount(),
                     getTomorrowAdministrativeCount(),
-                    getTodaySessions(3),
-                    getTomorrowSessions(3),
-                    getTodayExpertSessions(3),
-                    getTomorrowExpertSessions(3),
-                    getTomorrowAdministrative(3),
+                    getTodaySessions(),
+                    getTomorrowSessions(),
+                    getTodayExpertSessions(),
+                    getTomorrowExpertSessions(),
+                    getTomorrowAdministrative(),
                     getAllCases()
                 ]);
                 const casesMap = new Map(Array.isArray(allCases) ? allCases.map(c => [c.id, c]) : []);
@@ -989,7 +1133,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                 if (tomorrowAdminList.length) {
                     items.push({
                         icon: 'assignment',
-                        title: `أعمال الغد (${tomorrowAdminList.length})`,
+                        title: `مهام الغد (${tomorrowAdminList.length})`,
                         lines: tomorrowAdminList.map(a => `${a.title || a.task || 'عمل'}`)
                     });
                 }
@@ -1006,7 +1150,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     header.className = 'flex items-center gap-2 px-2 py-1';
                     header.innerHTML = `<span class=\"material-symbols-outlined text-gray-600 text-base\">${it.icon}</span><span class=\"font-bold\">${it.title}</span>`;
                     block.appendChild(header);
-                    it.lines.slice(0, 3).forEach(line => {
+                    it.lines.forEach(line => {
                         const li = document.createElement('div');
                         li.className = 'pl-7 pr-2 py-1 text-gray-700';
                         li.textContent = line;
@@ -1140,7 +1284,7 @@ window.addEventListener('DOMContentLoaded', async () => {
                     btn.addEventListener('click', (e) => {
                         e.preventDefault();
                         e.stopPropagation();
-                        window.location.href = 'index.html';
+                        window.returnToMainScreen();
                     });
 
                     const leftSlot = document.createElement('div');
@@ -1169,6 +1313,65 @@ window.addEventListener('DOMContentLoaded', async () => {
             }
         }
     } catch (e) { }
+
+    // دالة موحدة للعودة المباشرة إلى الصفحة الرئيسية مع تفريغ سجل التاريخ للـ PWA
+    try {
+        const path = (window.location.pathname || '').toLowerCase();
+        const pageName = path.split('/').pop().replace(/\?.*$/, '').replace(/#.*$/, '').trim() || 'index.html';
+        const isHome = (pageName === 'index.html' || pageName === '');
+
+        if (isHome) {
+            try {
+                sessionStorage.setItem('law_home_depth', '0');
+                sessionStorage.removeItem('app_exit_confirmed');
+            } catch (_) { }
+        } else {
+            try {
+                const curDepth = parseInt(sessionStorage.getItem('law_home_depth') || '0', 10);
+                if (pageName === 'case-info.html') {
+                    sessionStorage.setItem('law_home_depth', String(Math.max(curDepth, 2)));
+                } else if (curDepth < 1) {
+                    sessionStorage.setItem('law_home_depth', '1');
+                }
+            } catch (_) { }
+        }
+
+        window.returnToMainScreen = function () {
+            try {
+                const depth = parseInt(sessionStorage.getItem('law_home_depth') || '0', 10);
+                sessionStorage.setItem('law_home_depth', '0');
+                if (depth > 0 && window.history.length > depth) {
+                    window.history.go(-depth);
+                    setTimeout(function () {
+                        const currentPath = (window.location.pathname || '').toLowerCase();
+                        const currentPage = currentPath.split('/').pop().replace(/\?.*$/, '').replace(/#.*$/, '').trim() || 'index.html';
+                        if (currentPage !== 'index.html' && currentPage !== '') {
+                            window.location.replace('index.html');
+                        }
+                    }, 300);
+                    return;
+                }
+            } catch (_) { }
+            window.location.replace('index.html');
+        };
+
+        if (!isDesktopApp) {
+            document.addEventListener('click', function (e) {
+                const btn = e.target.closest('#back-to-main, #back-to-main-search, #quick-home-btn');
+                if (!btn) return;
+                // إذا كان الزر مخصصاً لإغلاق عرض الموكل داخل نفس الصفحة
+                if (btn.dataset.boundForClient) return;
+
+                const path = (window.location.pathname || '').toLowerCase();
+                const pageName = path.split('/').pop().replace(/\?.*$/, '').replace(/#.*$/, '').trim() || 'index.html';
+                if (pageName === 'index.html' || pageName === '') return;
+
+                e.preventDefault();
+                e.stopPropagation();
+                window.returnToMainScreen();
+            }, true);
+        }
+    } catch (_) { }
 
     try {
         const enforceBackLabel = () => {
@@ -1332,3 +1535,114 @@ function closeMobileSidebar() {
         sidebarCheckbox.checked = false;
     }
 }
+
+// تمكين سحب وتحريك سهم القائمة الجانبية بسلاسة في جميع الشاشات (لمس في الموبايل وماوس للتجربة)
+(function initUniversalMobileSidebarDragToggle() {
+    function setupToggle() {
+        const toggleBtn = document.querySelector('.mobile-sidebar-toggle');
+        if (!toggleBtn || toggleBtn.dataset.dragInitialized === '1') return;
+        toggleBtn.dataset.dragInitialized = '1';
+
+        toggleBtn.style.touchAction = 'none';
+        toggleBtn.style.userSelect = 'none';
+        toggleBtn.style.webkitUserSelect = 'none';
+        toggleBtn.style.cursor = 'grab';
+
+        const savedTop = localStorage.getItem('mobile_sidebar_toggle_top') || localStorage.getItem('sessions_sidebar_toggle_top');
+        if (savedTop) {
+            toggleBtn.style.top = savedTop;
+            toggleBtn.style.transform = 'none';
+        }
+
+        let startY = 0;
+        let initialTop = 0;
+        let isDragging = false;
+        let isPointerActive = false;
+
+        const onDown = (clientY, pointerId) => {
+            isPointerActive = true;
+            startY = clientY;
+            initialTop = toggleBtn.getBoundingClientRect().top;
+            isDragging = false;
+            toggleBtn.style.cursor = 'grabbing';
+            if (pointerId != null && typeof toggleBtn.setPointerCapture === 'function') {
+                try { toggleBtn.setPointerCapture(pointerId); } catch (_) { }
+            }
+        };
+
+        const onMove = (clientY, cancelable, e) => {
+            if (!isPointerActive) return;
+            const deltaY = clientY - startY;
+
+            if (Math.abs(deltaY) > 4) {
+                isDragging = true;
+                if (cancelable && e && typeof e.preventDefault === 'function') {
+                    e.preventDefault();
+                }
+
+                let newTop = initialTop + deltaY;
+                const btnH = toggleBtn.offsetHeight || 72;
+                const minTop = 50;
+                const maxTop = window.innerHeight - btnH - 10;
+                newTop = Math.max(minTop, Math.min(newTop, maxTop));
+
+                toggleBtn.style.top = `${newTop}px`;
+                toggleBtn.style.transform = 'none';
+            }
+        };
+
+        const onUp = (pointerId) => {
+            if (!isPointerActive) return;
+            isPointerActive = false;
+            toggleBtn.style.cursor = 'grab';
+            if (pointerId != null && typeof toggleBtn.releasePointerCapture === 'function') {
+                try { toggleBtn.releasePointerCapture(pointerId); } catch (_) { }
+            }
+            if (isDragging) {
+                localStorage.setItem('mobile_sidebar_toggle_top', toggleBtn.style.top);
+                setTimeout(() => { isDragging = false; }, 80);
+            }
+        };
+
+        if (window.PointerEvent) {
+            toggleBtn.addEventListener('pointerdown', (e) => {
+                if (e.button !== 0 && e.pointerType === 'mouse') return;
+                onDown(e.clientY, e.pointerId);
+            });
+
+            toggleBtn.addEventListener('pointermove', (e) => {
+                onMove(e.clientY, e.cancelable, e);
+            });
+
+            toggleBtn.addEventListener('pointerup', (e) => onUp(e.pointerId));
+            toggleBtn.addEventListener('pointercancel', (e) => onUp(e.pointerId));
+        } else {
+            toggleBtn.addEventListener('touchstart', (e) => {
+                if (!e.touches || !e.touches[0]) return;
+                onDown(e.touches[0].clientY, null);
+            }, { passive: true });
+
+            toggleBtn.addEventListener('touchmove', (e) => {
+                if (!e.touches || !e.touches[0]) return;
+                onMove(e.touches[0].clientY, e.cancelable, e);
+            }, { passive: false });
+
+            toggleBtn.addEventListener('touchend', () => onUp(null));
+            toggleBtn.addEventListener('touchcancel', () => onUp(null));
+        }
+
+        toggleBtn.addEventListener('click', (e) => {
+            if (isDragging) {
+                e.preventDefault();
+                e.stopPropagation();
+                isDragging = false;
+            }
+        }, true);
+    }
+
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', setupToggle);
+    } else {
+        setupToggle();
+    }
+})();

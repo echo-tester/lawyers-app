@@ -1450,7 +1450,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (backBtn) backBtn.addEventListener('click', () => {
             try { __barcodeStopCamera(); } catch (_) { }
             try { __barcodeUserWantsCamera = false; } catch (_) { }
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         });
 
         const imageBtn = document.getElementById('barcode-image-btn');

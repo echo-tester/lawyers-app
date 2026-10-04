@@ -1,0 +1,98 @@
+{
+  "name": "lawyer",
+  "version": "5.0.0",
+  "description": "Lawyers Egypt Digital - Law Office Management App",
+  "main": "electron-main.js",
+  "homepage": "https://github.com/echo-tester/lawyers-app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/echo-tester/lawyers-app.git"
+  },
+  "scripts": {
+    "start": "electron .",
+    "dev": "set ELECTRON_DEV=1&& electronmon .",
+    "build": "electron-builder",
+    "build-win": "electron-builder --win",
+    "build-win-64": "electron-builder --win --x64",
+    "build-win-32": "electron-builder --win --ia32",
+    "build-installer": "electron-builder --config builder.json --win --ia32",
+    "pack": "electron-packager . \"lawyer\" --platform=win32 --arch=x64 --out=dist --overwrite --asar",
+    "pack-32": "electron-packager . \"lawyer\" --platform=win32 --arch=ia32 --out=dist --overwrite --asar",
+    "pack-both": "electron-packager . \"lawyer\" --platform=win32 --arch=x64,ia32 --out=dist --overwrite --asar",
+    "pack-law": "if exist \"law\" rmdir /s /q \"law\" && electron-packager . \"law\" --platform=win32 --arch=x64 --out=dist --overwrite --asar=true --executable-name=lawyer --app-bundle-id=com.lawyers.egypt.digital --app-version=%npm_package_version% --build-version=%npm_package_version% --appCopyright=\"Ahmad - Egypt\" --win32metadata.CompanyName=\"Lawyers Egypt Digital\" --win32metadata.ProductName=\"lawyer\" --win32metadata.FileDescription=\"Law Office Management App\" && if exist \"law-win32-x64\" ren \"law-win32-x64\" \"law\"",
+    "pack-law-32": "if exist \"law-32\" rmdir /s /q \"law-32\" && electron-packager . law-32 --platform=win32 --arch=ia32 --out=. --overwrite --asar=true --executable-name=lawyer --app-bundle-id=com.lawyers.egypt.digital --app-version=%npm_package_version% --build-version=%npm_package_version% --appCopyright=\"Ahmad - Egypt\" --win32metadata.CompanyName=\"Lawyers Egypt Digital\" --win32metadata.ProductName=\"lawyer\" --win32metadata.FileDescription=\"Law Office Management App\" && if exist \"law-32-win32-ia32\" ren \"law-32-win32-ia32\" \"law-32\"",
+    "dist": "electron-builder --publish=never"
+  },
+  "author": "Ahmad - Egypt",
+  "license": "MIT",
+  "devDependencies": {
+    "electron": "^22.3.27",
+    "electron-builder": "^24.13.3",
+    "electronmon": "^2.0.3"
+  },
+  "build": {
+    "appId": "com.lawyer.app",
+    "productName": "المحامى الرقمى",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "**/*",
+      "!builder-cache/**",
+      "!node_modules/**/*",
+      "node_modules/electron-updater/**/*",
+      "!7zip/**",
+      "!pack.7z",
+      "!pack.rar"
+    ],
+    "asar": {
+      "smartUnpack": true
+    },
+    "asarUnpack": [
+      "**/node_modules/electron-updater/**/*"
+    ],
+    "extraResources": [
+      "7zip/**",
+      "pack.7z",
+      "pack.rar"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "ia32"
+          ]
+        }
+      ],
+      "requestedExecutionLevel": "asInvoker",
+      "icon": "icons/icon.ico",
+      "certificateFile": "cert.pfx",
+      "certificatePassword": "lawyer2024"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": false,
+      "allowElevation": true,
+      "include": "build/installer.nsh",
+      "installerIcon": "icons/icon.ico",
+      "uninstallerIcon": "icons/icon.ico",
+      "installerHeaderIcon": "icons/icon.ico",
+      "license": "license_ar.txt",
+      "multiLanguageInstaller": true,
+      "language": "1025",
+      "installerLanguages": [
+        "ar"
+      ],
+      "createDesktopShortcut": "always",
+      "createStartMenuShortcut": true,
+      "shortcutName": "المحامى الرقمى",
+      "artifactName": "lawyer-setup-${version}.exe",
+      "runAfterFinish": true
+    }
+  },
+  "dependencies": {
+    "electron-updater": "^6.6.2"
+  }
+}

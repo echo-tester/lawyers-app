@@ -137,7 +137,7 @@
             // زر الرجوع في الهيدر يرجع للرئيسية
             const backBtn = document.getElementById('back-to-main');
             backBtn?.addEventListener('click', () => {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             });
 
             // عنوان الهيدر
@@ -148,7 +148,7 @@
             const closeButton = document.getElementById('modal-close-button');
             closeButton?.addEventListener('click', () => {
                 if (!stateManager || !stateManager.modalHistory || stateManager.modalHistory.length <= 1) {
-                    window.location.href = 'index.html';
+                    window.location.replace('index.html');
                 } else {
                     navigateBack();
                 }

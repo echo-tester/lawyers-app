@@ -11,14 +11,281 @@
         '  [id^="export-menu-"].reports-export-dropdown { min-width: 240px !important; width: max-content; max-width: calc(100vw - 24px); border-radius: 12px; overflow: hidden; }',
         '  [id^="export-menu-"].reports-export-dropdown button { padding: 14px 16px !important; min-height: 52px !important; font-size: 1rem !important; font-weight: 500; display: flex !important; align-items: center; justify-content: flex-end; gap: 10px; }',
         '  [id^="export-menu-"].reports-export-dropdown button .ri-whatsapp-line, [id^="export-menu-"].reports-export-dropdown button .ri-file-pdf-line, [id^="export-menu-"].reports-export-dropdown button .ri-file-excel-line { font-size: 1.25rem !important; }',
-        '}'
+        '}',
+        '@keyframes reports-loading-spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }'
     ].join('\n');
     document.head.appendChild(style);
+})();
+
+// -------------------------------------------------------------
+// نافذة تحميل موحدة وأنيقة لجميع التقارير (Universal Loading Overlay)
+// -------------------------------------------------------------
+function showReportsLoadingOverlay(message) {
+    try {
+        // التأكد من وجود كود التحريك دائماً
+        if (!document.getElementById('reports-loading-spinner-style')) {
+            const style = document.createElement('style');
+            style.id = 'reports-loading-spinner-style';
+            style.textContent = `
+                @keyframes reports-loading-spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+                @-webkit-keyframes reports-loading-spin {
+                    0% { -webkit-transform: rotate(0deg); }
+                    100% { -webkit-transform: rotate(360deg); }
+                }
+                .reports-loading-circle-spinner,
+                html.low-power #reports-loading-overlay .reports-loading-circle-spinner,
+                body.low-power #reports-loading-overlay .reports-loading-circle-spinner,
+                #reports-loading-overlay .reports-loading-circle-spinner {
+                    width: 46px;
+                    height: 46px;
+                    border: 4px solid #e2e8f0;
+                    border-top: 4px solid #2563eb;
+                    border-right: 4px solid #0d9488;
+                    border-radius: 50%;
+                    display: inline-block;
+                    box-sizing: border-box;
+                    animation: reports-loading-spin 0.8s linear infinite !important;
+                    -webkit-animation: reports-loading-spin 0.8s linear infinite !important;
+                    will-change: transform;
+                    margin: 0 auto 14px;
+                }
+            `;
+            document.head.appendChild(style);
+        }
+
+        let overlay = document.getElementById('reports-loading-overlay');
+        if (!overlay) {
+            overlay = document.createElement('div');
+            overlay.id = 'reports-loading-overlay';
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100vw';
+            overlay.style.height = '100vh';
+            overlay.style.backgroundColor = 'rgba(15, 23, 42, 0.45)';
+            overlay.style.backdropFilter = 'blur(4px)';
+            overlay.style.webkitBackdropFilter = 'blur(4px)';
+            overlay.style.display = 'flex';
+            overlay.style.alignItems = 'center';
+            overlay.style.justifyContent = 'center';
+            overlay.style.zIndex = '99999999';
+            overlay.style.direction = 'rtl';
+            overlay.style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif";
+
+            overlay.innerHTML = `
+                <div style="background: #ffffff; border-radius: 20px; padding: 24px 28px; width: 300px; max-width: 90vw; text-align: center; box-shadow: 0 25px 40px -10px rgba(0, 0, 0, 0.3); border: 1px solid #e2e8f0;">
+                    <div class="reports-loading-circle-spinner"></div>
+                    <div id="reports-loading-overlay-text" style="font-size: 16px; font-weight: bold; color: #1e293b; margin-bottom: 6px;">جاري إعداد التقرير...</div>
+                    <div style="font-size: 12px; color: #64748b; line-height: 1.4;">يرجى الانتظار لحظات لتنسيق الصفحات بدقة</div>
+                </div>
+            `;
+            document.body.appendChild(overlay);
+        }
+        const textEl = document.getElementById('reports-loading-overlay-text');
+        if (textEl && message) {
+            textEl.textContent = message;
+        }
+        overlay.style.display = 'flex';
+    } catch (_) { }
+}
+
+function hideReportsLoadingOverlay() {
+    try {
+        const overlay = document.getElementById('reports-loading-overlay');
+        if (overlay) {
+            overlay.remove();
+        }
+    } catch (_) { }
+}
+
+// ربط تلقائي ذكي مع إشعارات التصدير في كل التقارير بدون الحاجة لتعديل أي ملف آخر
+(function setupAutoReportsLoadingBridge() {
+    if (typeof window === 'undefined') return;
+    const origShowToast = window.showToast;
+    if (typeof origShowToast !== 'function') return;
+
+    window.showToast = function (message, type = 'success', durationMs = 3000, position) {
+        try {
+            const msg = String(message || '');
+            if (msg.includes('جاري إنشاء') || msg.includes('جاري إعداد') || msg.includes('جاري تجهيز')) {
+                showReportsLoadingOverlay(msg);
+            } else if (type === 'success' || type === 'error' || msg.includes('تم تصدير') || msg.includes('تم تحميل') || msg.includes('حدث خطأ')) {
+                hideReportsLoadingOverlay();
+            }
+        } catch (_) { }
+        return origShowToast.apply(this, arguments);
+    };
 })();
 
 function isElectronApp() {
     return typeof window !== 'undefined' && (window.electronAPI || (window.process && window.process.type === 'renderer') || /electron/i.test(navigator.userAgent || ''));
 }
+
+// -------------------------------------------------------------
+// إدارة التنسيقات الداخلية المخبأة لمنع استهلاك الإنترنت أثناء تصدير التقارير
+// -------------------------------------------------------------
+let __inlinedReportsCssBundle = '';
+let __preloadCssPromise = null;
+
+function __preloadReportsCss() {
+    if (__inlinedReportsCssBundle) return Promise.resolve(__inlinedReportsCssBundle);
+    if (__preloadCssPromise) return __preloadCssPromise;
+
+    __preloadCssPromise = (async () => {
+        try {
+            // جلب ملفات التنسيق محلياً (يتم جلبها فورياً من كاش المتصفح عبر ServiceWorker بدون استهلاك باقة)
+            const files = ['css/tailwind.min.css', 'css/style.css', 'css/search-responsive.css'];
+            const contents = await Promise.all(
+                files.map(url => fetch(url).then(res => res.ok ? res.text() : '').catch(() => ''))
+            );
+            const joined = contents.filter(Boolean).join('\n');
+            if (joined) {
+                __inlinedReportsCssBundle = joined;
+                return joined;
+            }
+        } catch (_) { }
+
+        // خطة بديلة فورية متزامنة: قراءة القواعد الجاهزة من الـ CSSOM في ذاكرة المتصفح
+        try {
+            if (typeof document !== 'undefined' && document.styleSheets) {
+                let text = '';
+                for (let i = 0; i < document.styleSheets.length; i++) {
+                    const sheet = document.styleSheets[i];
+                    const href = String(sheet.href || '');
+                    if (href.includes('remixicon')) continue; // استبعاد خطوط الأيقونات لمنع أي طلبات شبكة
+                    try {
+                        const rules = sheet.cssRules || sheet.rules;
+                        if (rules) {
+                            for (let j = 0; j < rules.length; j++) {
+                                text += rules[j].cssText + '\n';
+                            }
+                        }
+                    } catch (_) { }
+                }
+                if (text) {
+                    __inlinedReportsCssBundle = text;
+                    return text;
+                }
+            }
+        } catch (_) { }
+
+        return __inlinedReportsCssBundle || '';
+    })();
+
+    return __preloadCssPromise;
+}
+
+// بدء التجهيز المسبق فوراً في الخلفية بمجرد تحميل الصفحة
+if (typeof window !== 'undefined') {
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', __preloadReportsCss);
+    } else {
+        __preloadReportsCss();
+    }
+}
+
+// -------------------------------------------------------------
+// ضبط تلقائي ومركزي لمكتبة html2pdf على الهاتف فقط (لكل التقارير)
+// يمنع استهلاك الإنترنت تماماً ويحافظ على سلامة جميع الأعمدة والتنسيقات 100%
+// -------------------------------------------------------------
+(function setupAutoMobilePdfExportBridge() {
+    if (typeof window === 'undefined' || typeof window.html2pdf !== 'function') return;
+    const origHtml2Pdf = window.html2pdf;
+
+    function applyOptimizedOptions(opt) {
+        if (!opt || typeof opt !== 'object') return;
+        opt.html2canvas = opt.html2canvas || {};
+
+        const isMobile = typeof isElectronApp === 'function' ? !isElectronApp() : true;
+        if (isMobile && !opt.html2canvas.windowWidth) {
+            opt.html2canvas.windowWidth = 1200;
+        }
+
+        // إذا كان التطبيق على الهاتف/المتصفح: نمنع استهلاك الإنترنت مع ضمان التنسيقات الكاملة
+        if (isMobile) {
+            if (opt.html2canvas.__inlinedOptimized) return;
+            opt.html2canvas.__inlinedOptimized = true;
+
+            // 1. منع استنساخ وسوم link لتفادي أي طلبات شبكة HTTP داخل الـ iframe
+            const prevIgnore = opt.html2canvas.ignoreElements;
+            opt.html2canvas.ignoreElements = function (el) {
+                if (el && el.tagName === 'LINK') return true;
+                if (typeof prevIgnore === 'function') return prevIgnore(el);
+                return false;
+            };
+
+            // 2. حقن حزمة التنسيق الكاملة مسبقة التجهيز داخل الـ iframe كـ <style> مدمج
+            const prevOnClone = opt.html2canvas.onclone;
+            opt.html2canvas.onclone = async function (clonedDoc) {
+                if (clonedDoc) {
+                    try {
+                        const links = clonedDoc.querySelectorAll('link[rel="stylesheet"], link');
+                        links.forEach(l => l.remove());
+
+                        const cssText = await __preloadReportsCss();
+                        if (cssText && !clonedDoc.getElementById('html2pdf-inlined-bundle')) {
+                            const styleEl = clonedDoc.createElement('style');
+                            styleEl.id = 'html2pdf-inlined-bundle';
+                            styleEl.textContent = cssText;
+                            const targetHead = clonedDoc.head || clonedDoc.documentElement;
+                            if (targetHead) {
+                                targetHead.appendChild(styleEl);
+                            }
+                        }
+                    } catch (_) { }
+                }
+                if (typeof prevOnClone === 'function') {
+                    return prevOnClone(clonedDoc);
+                }
+            };
+        }
+    }
+
+    window.html2pdf = function (source, options) {
+        if (options && typeof options === 'object') {
+            applyOptimizedOptions(options);
+        }
+
+        const worker = origHtml2Pdf.apply(this, arguments);
+
+        if (worker && typeof worker.set === 'function') {
+            const origSet = worker.set;
+            worker.set = function (opt) {
+                applyOptimizedOptions(opt);
+                return origSet.apply(this, arguments);
+            };
+        }
+
+        return worker;
+    };
+
+    // الحفاظ على الخصائص الثابتة للمكتبة إن وُجدت
+    try {
+        Object.assign(window.html2pdf, origHtml2Pdf);
+    } catch (_) { }
+})();
+
+// إخفاء أزرار الطباعة في شريط أدوات التقارير إذا لم يكن التطبيق إلكترون (على الهاتف فقط)
+(function setupMobileReportsPrintVisibility() {
+    if (typeof window === 'undefined') return;
+    const isMobile = typeof isElectronApp === 'function' ? !isElectronApp() : true;
+    if (!isMobile) return;
+
+    if (document.getElementById('mobile-reports-hide-print-styles')) return;
+    const style = document.createElement('style');
+    style.id = 'mobile-reports-hide-print-styles';
+    style.textContent = `
+        /* إخفاء أزرار الطباعة في شريط أدوات التقارير على الهاتف فقط */
+        .reports-page button[onclick*="print"],
+        .reports-page #print-current-report-btn {
+            display: none !important;
+        }
+    `;
+    document.head.appendChild(style);
+})();
 
 /** جلب اسم المكتب الحالي من الإعدادات (يُستدعى عند كل تصدير/طباعة لضمان الاسم المحدث). إذا لم يوجد يُرجع "المحامى الرقمى". */
 async function getReportsOfficeName() {
@@ -38,38 +305,131 @@ async function getReportsOfficeName() {
 }
 
 async function shareReportPdfAsFile(blob, filename) {
+    hideReportsLoadingOverlay();
     if (!blob || !(blob instanceof Blob)) {
         if (typeof showToast === 'function') showToast('لا يوجد ملف للمشاركة', 'error');
         return;
     }
-    const file = new File([blob], filename || 'report.pdf', { type: 'application/pdf' });
+    const cleanFilename = (filename || 'report.pdf').replace(/[\/\\?%*:|"<>]/g, '_');
+    const file = new File([blob], cleanFilename, { type: 'application/pdf', lastModified: Date.now() });
     const show = typeof showToast === 'function' ? showToast : function () { };
+
     const fallbackDownload = () => {
         const url = URL.createObjectURL(blob);
         const a = document.createElement('a');
         a.href = url;
-        a.download = filename || 'report.pdf';
+        a.download = cleanFilename;
         a.style.display = 'none';
         document.body.appendChild(a);
         a.click();
         document.body.removeChild(a);
         URL.revokeObjectURL(url);
-        show('تم تحميل التقرير. افتح واتساب وأرفق الملف من المعرض أو الملفات.', 'info');
+        show('تم تحميل التقرير. يمكنك إرفاقه ومشاركته في واتساب.', 'info');
     };
-    if (typeof navigator !== 'undefined' && navigator.share) {
+
+    // التحقق من دعم مشاركة الملفات
+    const canShareFiles = (typeof navigator !== 'undefined' && navigator.share && typeof navigator.canShare === 'function')
+        ? navigator.canShare({ files: [file] })
+        : (typeof navigator !== 'undefined' && !!navigator.share);
+
+    if (canShareFiles) {
         try {
-            await navigator.share({ title: 'تقرير', files: [file] });
-            show('تم فتح المشاركة. اختر واتساب أو أي تطبيق.', 'success');
+            // محاولة فتح المشاركة فوراً بعد اكتمال التوليد مباشرة
+            await navigator.share({
+                title: cleanFilename,
+                text: 'تقرير المحامى الرقمى',
+                files: [file]
+            });
+            show('تم فتح المشاركة بنجاح', 'success');
+            return;
         } catch (err) {
+            console.warn('Direct share attempt failed:', err);
             if (err && err.name === 'AbortError') return;
-            fallbackDownload();
+
+            // إذا اعترض أندرويد بسبب انقضاء وقت اللمسة أثناء التوليد (NotAllowedError)
+            // نعرض زراً فورياً بلمسة واحدة طازجة لفتح نافذة المشاركة فوراً
+            __showDirectShareButton(file, blob, cleanFilename);
+            return;
         }
-    } else {
-        fallbackDownload();
+    }
+
+    fallbackDownload();
+}
+
+function __showDirectShareButton(file, blob, filename) {
+    const oldPrompt = document.getElementById('direct-share-prompt-overlay');
+    if (oldPrompt) oldPrompt.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'direct-share-prompt-overlay';
+    overlay.style.position = 'fixed';
+    overlay.style.top = '0';
+    overlay.style.left = '0';
+    overlay.style.width = '100vw';
+    overlay.style.height = '100vh';
+    overlay.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+    overlay.style.display = 'flex';
+    overlay.style.alignItems = 'center';
+    overlay.style.justifyContent = 'center';
+    overlay.style.zIndex = '9999999';
+    overlay.style.direction = 'rtl';
+    overlay.style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif";
+
+    overlay.innerHTML = `
+        <div style="background: white; border-radius: 16px; padding: 20px; max-width: 90vw; width: 340px; text-align: center; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.3);">
+            <div style="width: 56px; height: 56px; background: #ecfdf5; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 12px; font-size: 28px;">
+                📲
+            </div>
+            <div style="font-weight: bold; font-size: 16px; color: #1e293b; margin-bottom: 6px;">تم تجهيز التقرير بنجاح</div>
+            <div style="font-size: 13px; color: #64748b; margin-bottom: 18px;">اضغط أدناه لفتح المشاركة في واتساب:</div>
+            
+            <button id="direct-share-trigger-btn" type="button" style="width: 100%; padding: 12px; background: #16a34a; color: white; border: none; border-radius: 10px; font-size: 15px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 10px; box-shadow: 0 4px 6px -1px rgba(22, 163, 74, 0.3);">
+                <span>مشاركة عبر واتساب الآن</span>
+            </button>
+
+            <button id="direct-share-cancel-btn" type="button" style="width: 100%; padding: 8px; background: transparent; color: #64748b; border: none; font-size: 13px; cursor: pointer;">
+                إلغاء
+            </button>
+        </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    const triggerBtn = document.getElementById('direct-share-trigger-btn');
+    const cancelBtn = document.getElementById('direct-share-cancel-btn');
+
+    if (triggerBtn) {
+        triggerBtn.onclick = async () => {
+            overlay.remove();
+            try {
+                if (typeof navigator !== 'undefined' && navigator.share) {
+                    await navigator.share({
+                        title: filename,
+                        text: 'تقرير المحامى الرقمى',
+                        files: [file]
+                    });
+                }
+            } catch (err) {
+                if (err && err.name === 'AbortError') return;
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }
+        };
+    }
+
+    if (cancelBtn) {
+        cancelBtn.onclick = () => overlay.remove();
     }
 }
 
 function displayReportsModal() {
+    __reportsHistory = [];
     const modalTitle = document.getElementById('modal-title');
     const modalContent = document.getElementById('modal-content');
     const modalContainer = document.getElementById('modal-container');
@@ -166,6 +526,13 @@ function displayReportsModal() {
                         <span class="text-base font-bold">تقارير القضايا</span>
                     </div>
                 </button>
+
+                <button class="report-btn w-full text-right p-3 mb-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-transparent hover:border-orange-300" style="background: linear-gradient(135deg, #f97316, #ea580c);" data-report="sessions-agenda">
+                    <div class="flex items-center gap-3 text-white">
+                        <i class="ri-calendar-check-line text-xl"></i>
+                        <span class="text-base font-bold">تقارير الجلسات</span>
+                    </div>
+                </button>
             
                 <button class="report-btn w-full text-right p-3 mb-2 rounded-lg shadow-sm hover:shadow-md transition-all duration-200 border border-transparent hover:border-orange-300" style="background: linear-gradient(135deg, #f97316, #ea580c);" data-report="accounts">
                     <div class="flex items-center gap-3 text-white">
@@ -259,11 +626,39 @@ function displayReportsModal() {
 }
 
 
+let __reportsHistory = [];
+let __isNavigatingReportsHistory = false;
+
+window.__reportsNavigateBack = function () {
+    try {
+        const sidebarToggle = document.getElementById('sidebar-toggle');
+        if (sidebarToggle && sidebarToggle.checked) {
+            sidebarToggle.checked = false;
+            return true;
+        }
+        if (__reportsHistory.length > 1) {
+            __reportsHistory.pop();
+            const prevReport = __reportsHistory[__reportsHistory.length - 1];
+            __isNavigatingReportsHistory = true;
+            handleReportClick(prevReport);
+            __isNavigatingReportsHistory = false;
+            return true;
+        }
+    } catch (_) { }
+    return false;
+};
+
 function handleReportClick(reportType) {
+    if (!__isNavigatingReportsHistory) {
+        if (__reportsHistory.length === 0 || __reportsHistory[__reportsHistory.length - 1] !== reportType) {
+            __reportsHistory.push(reportType);
+        }
+    }
     const reportNames = {
         'client-comprehensive': 'تقارير الموكلين',
         'clients-files': 'تقارير التوكيلات',
         'sessions': 'تقارير القضايا',
+        'sessions-agenda': 'تقارير الجلسات',
         'archive': 'تقارير المؤرشف',
         'accounts': 'تقارير الحسابات',
         'administrative': 'تقارير المهام',
@@ -280,6 +675,8 @@ function handleReportClick(reportType) {
         updateClientsFilesReportContent(reportName, reportType);
     } else if (reportType === 'sessions') {
         updateSessionsReportContent(reportName, reportType);
+    } else if (reportType === 'sessions-agenda') {
+        updateSessionsAgendaReportContent(reportName, reportType);
     } else if (reportType === 'archive') {
         updateArchiveReportContent(reportName, reportType);
     } else if (reportType === 'accounts') {

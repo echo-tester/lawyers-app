@@ -428,7 +428,7 @@ async function loadPartyDetailsForm() {
     }
 
     try {
-        if ((__isNewCaseFlow || __isNewCaseFromClientView) && !__hasUserPartiesStash) {
+        if ((__isNewCaseFlow || __isNewCaseFromClientView || __isAddCaseForClientMode) && !__hasUserPartiesStash) {
             const capEl = document.getElementById('client-capacity');
             if (capEl) capEl.value = '';
 
@@ -443,7 +443,8 @@ async function loadPartyDetailsForm() {
 
     try {
         const hasOpponentInStash = !!(stateManager.caseDataStash.parties && stateManager.caseDataStash.parties.opponentName);
-        if (!__isFreshClientMode && !__isNewCaseFlow && !stateManager.selectedOpponentId && stateManager.selectedClientId && !hasOpponentInStash) {
+        const isCreatingNewCase = (__isNewCaseFlow || __isNewCaseFromClientView || __isAddCaseForClientMode || __isFreshClientMode || !stateManager.currentCaseId);
+        if (!isCreatingNewCase && !stateManager.selectedOpponentId && stateManager.selectedClientId && !hasOpponentInStash) {
             const rel = JSON.parse(localStorage.getItem('clientOpponentRelations') || '{}');
             const ids = rel && rel[stateManager.selectedClientId] ? rel[stateManager.selectedClientId] : [];
             const pick = Array.isArray(ids) && ids.length > 0 ? ids[0] : null;
@@ -451,7 +452,7 @@ async function loadPartyDetailsForm() {
                 stateManager.setSelectedOpponentId(pick);
             }
         }
-        if (!__isFreshClientMode && !__isNewCaseFlow && stateManager.selectedOpponentId && !hasOpponentInStash) {
+        if (!isCreatingNewCase && stateManager.selectedOpponentId && !hasOpponentInStash) {
             await loadSelectedOpponentData();
         }
     } catch (_) { }
@@ -1014,18 +1015,25 @@ function setupBackButton() {
                 if (__isEditCaseMode) {
                     try {
                         const goBackTo = sessionStorage.getItem('returnToPage') || '';
+                        if (goBackTo === 'sessions') {
+                            sessionStorage.removeItem('returnToPage');
+                            window.location.replace('sessions.html');
+                            return;
+                        }
                         const clientId = parseInt(sessionStorage.getItem('returnToClientId') || '0', 10);
                         if ((goBackTo === 'search' || goBackTo === 'clientView') && clientId) {
                             sessionStorage.removeItem('returnToPage');
                             sessionStorage.removeItem('returnToClientId');
                             sessionStorage.setItem('openClientDetailsOnSearch', String(clientId));
-                            window.location.href = 'search.html';
+                            window.location.replace('search.html');
                             return;
                         }
                     } catch (_) { }
-                    window.location.href = 'search.html';
+                    window.location.replace('search.html');
                     return;
                 }
+
+
 
                 try {
                     const poaEl = embedded ? embedded.querySelector('#poaNumber') : null;
@@ -1040,6 +1048,7 @@ function setupBackButton() {
                 if (embedded) embedded.innerHTML = '';
                 const pageTitleEl = document.getElementById('page-title');
                 if (pageTitleEl) pageTitleEl.textContent = 'إدخال بيانات الأطراف';
+                if (typeof setHeaderAsHome === 'function') setHeaderAsHome();
                 return;
             }
 
@@ -1069,7 +1078,7 @@ function setupBackButton() {
                     sessionStorage.removeItem('returnToPage');
                     sessionStorage.removeItem('returnToClientId');
                     sessionStorage.setItem('openClientDetailsOnSearch', String(clientId));
-                    window.location.href = 'search.html';
+                    window.location.replace('search.html');
                     return;
                 }
                 if (goBackTo === 'clientView' && clientId) {
@@ -1077,7 +1086,20 @@ function setupBackButton() {
                     sessionStorage.removeItem('returnToPage');
                     sessionStorage.removeItem('returnToClientId');
                     sessionStorage.setItem('openClientDetailsOnSearch', String(clientId));
-                    window.location.href = 'search.html';
+                    window.location.replace('search.html');
+                    return;
+                }
+                if (goBackTo === 'search' || goBackTo === 'clientView') {
+                    e.preventDefault();
+                    sessionStorage.removeItem('returnToPage');
+                    sessionStorage.removeItem('returnToClientId');
+                    window.location.replace('search.html');
+                    return;
+                }
+                if (goBackTo === 'sessions') {
+                    e.preventDefault();
+                    sessionStorage.removeItem('returnToPage');
+                    window.location.replace('sessions.html');
                     return;
                 }
             } catch (_) { }
@@ -1097,13 +1119,19 @@ function setupBackButton() {
                     if (cid) {
                         e.preventDefault();
                         sessionStorage.setItem('openClientDetailsOnSearch', String(cid));
-                        window.location.href = 'search.html';
+                        window.location.replace('search.html');
+                        return;
+                    }
+                    if (origin === 'search') {
+                        e.preventDefault();
+                        sessionStorage.removeItem('returnToPage');
+                        window.location.replace('search.html');
                         return;
                     }
                 }
             } catch (_) { }
 
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         });
     }
 }
@@ -1466,7 +1494,7 @@ function setHeaderAsBack() {
     const icon = btn.querySelector('i');
     const span = btn.querySelector('span');
     if (icon) {
-        icon.className = 'ri-arrow-go-back-line text-blue-600 text-lg';
+        icon.className = 'ri-arrow-go-back-line text-white text-base';
     }
     if (span) span.textContent = 'رجوع';
 }
@@ -1476,9 +1504,14 @@ function setHeaderAsHome() {
     const icon = btn.querySelector('i');
     const span = btn.querySelector('span');
     if (icon) {
-        icon.className = 'ri-home-5-line text-blue-600 text-lg';
+        icon.className = 'ri-arrow-right-line text-white text-base';
     }
-    if (span) span.textContent = 'الرئيسيه';
+    if (span) {
+        const goBackTo = (function () {
+            try { return sessionStorage.getItem('returnToPage') || ''; } catch (_) { return ''; }
+        })();
+        span.textContent = (goBackTo === 'search' || goBackTo === 'clientView' || goBackTo === 'sessions') ? 'رجوع' : 'الرئيسيه';
+    }
 }
 
 

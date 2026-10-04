@@ -45,11 +45,6 @@ function __parseExpertSessionDateString(dateStr) {
 }
 
 function __getExpertNow() {
-    try {
-        const raw = localStorage.getItem('onlineTimeOffsetMs');
-        const offset = raw ? parseInt(raw, 10) : 0;
-        if (!isNaN(offset)) return new Date(Date.now() + offset);
-    } catch (_) { }
     return new Date();
 }
 
@@ -147,7 +142,7 @@ function displayExpertSessionsModal() {
             backBtn.parentNode.replaceChild(newBackBtn, backBtn);
 
             newBackBtn.addEventListener('click', function () {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             });
         }
     } catch (_) { }
@@ -747,6 +742,12 @@ async function updateExpertSessionsStats() {
 }
 
 
+var normalizeDigits = window.normalizeDigits || function(str) {
+    if (!str) return '';
+    return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+};
+window.normalizeDigits = normalizeDigits;
+
 async function filterExpertSessions(searchTerm) {
     if (!searchTerm) {
         loadAllExpertSessions();
@@ -760,19 +761,16 @@ async function filterExpertSessions(searchTerm) {
         const cases = await getAllCases();
         const clientsMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
 
+        const cleanSearch = normalizeDigits(searchTerm).trim().toLowerCase();
+
         let filteredSessions = allSessions.filter(session => {
             const clientData = clientsMap.get(session.clientId);
+            const clientName = clientData ? normalizeDigits(clientData.name).toLowerCase() : '';
+            const caseNum = session.caseNumber ? normalizeDigits(session.caseNumber).toLowerCase() : '';
 
-            
-            const matchesClient = clientData && clientData.name.includes(searchTerm);
-
-            
-            const matchesCaseNumber = session.caseNumber && session.caseNumber.includes(searchTerm);
-
-            return matchesClient || matchesCaseNumber;
+            return clientName.includes(cleanSearch) || caseNum.includes(cleanSearch);
         });
 
-        
         filteredSessions = sortExpertSessionsByDate(filteredSessions);
 
         displayExpertSessionsList(filteredSessions, clients, cases);

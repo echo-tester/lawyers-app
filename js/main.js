@@ -248,6 +248,9 @@ function getFeatureLabelById(id) {
 
 async function handleCardClick(id) {
     try {
+        sessionStorage.setItem('law_home_depth', '1');
+    } catch (_) { }
+    try {
         if (typeof guardFeatureAccess === 'function') {
             const ok = await guardFeatureAccess(String(id || ''), getFeatureLabelById(id));
             if (!ok) return;
@@ -718,3 +721,93 @@ function showStatsMessage(title, message) {
     };
     document.addEventListener('keydown', handleEscape);
 }
+
+// تأكيد الخروج من التطبيق عند الضغط على زر الرجوع في الصفحة الرئيسية (Double Back to Exit)
+(function initBackToExitHandler() {
+    try {
+        if (typeof window === 'undefined') return;
+        // لا نحتاج هذا السلوك داخل تطبيق سطح المكتب Electron
+        if (window.electronAPI) return;
+
+        let isAwaitingExitConfirm = false;
+        let exitTimeout = null;
+
+        function armTrap() {
+            try {
+                if (sessionStorage.getItem('app_exit_confirmed') === '1') return;
+                if (!history.state || !history.state.appExitTrap) {
+                    history.pushState({ appExitTrap: true }, '', window.location.href);
+                }
+            } catch (_) { }
+        }
+
+        // وضع الحاجز الأولي عند تشغيل الصفحة الرئيسية
+        armTrap();
+
+        // عند استعادة الصفحة من BFCache أو العودة لها من صفحة سابقة
+        window.addEventListener('pageshow', function () {
+            if (sessionStorage.getItem('app_exit_confirmed') === '1') return;
+            isAwaitingExitConfirm = false;
+            if (exitTimeout) {
+                clearTimeout(exitTimeout);
+                exitTimeout = null;
+            }
+            armTrap();
+        });
+
+        // عند تفاعل المستخدم مع أي عنصر في الصفحة، إلغاء انتظار الخروج وإعادة الحاجز
+        document.addEventListener('click', function () {
+            try { sessionStorage.removeItem('app_exit_confirmed'); } catch (_) { }
+            if (isAwaitingExitConfirm) {
+                if (exitTimeout) {
+                    clearTimeout(exitTimeout);
+                    exitTimeout = null;
+                }
+                isAwaitingExitConfirm = false;
+                armTrap();
+            }
+        });
+
+        window.addEventListener('popstate', function (e) {
+            if (!isAwaitingExitConfirm) {
+                // الضغطة الأولى: تم إزالة الحاجز والمتصفح الآن عند نقطة البداية (Root)
+                isAwaitingExitConfirm = true;
+
+                try {
+                    if (typeof showToast === 'function') {
+                        showToast('أنت على وشك الخروج، اضغط مرة أخرى للتأكيد', 'warning');
+                    }
+                } catch (_) { }
+
+                if (exitTimeout) clearTimeout(exitTimeout);
+                exitTimeout = setTimeout(function () {
+                    isAwaitingExitConfirm = false;
+                    // انتهت مهلة التأكيد (2.5 ثانية) ولم يضغط المستخدم مرة أخرى -> نعيد وضع الحاجز
+                    armTrap();
+                }, 2500);
+            } else {
+                // الضغطة الثانية خلال 2.5 ثانية: المستخدم أكد رغبته في الخروج
+                if (exitTimeout) {
+                    clearTimeout(exitTimeout);
+                    exitTimeout = null;
+                }
+                isAwaitingExitConfirm = false;
+                try {
+                    sessionStorage.setItem('app_exit_confirmed', '1');
+                } catch (_) { }
+
+                try {
+                    window.close();
+                } catch (_) { }
+
+                // في حال وجود صفحات سابقة متبقية في سجل المتصفح (PWA History):
+                // نرجع فوراً إلى أقدم نقطة في السجل (Root) لمنع الدوران داخل الصفحة الرئيسية
+                try {
+                    if (window.history && window.history.length > 1) {
+                        window.history.go(-(window.history.length));
+                    }
+                } catch (_) { }
+            }
+        });
+    } catch (_) { }
+})();

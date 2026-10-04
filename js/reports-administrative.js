@@ -1,5 +1,7 @@
-
-
+/**
+ * تقارير المهام (الأعمال الإدارية) - بنظام الأعمدة المرنة والديناميكية
+ * متطابقة 100% مع معمارية تقارير القضايا (reports-cases.js) سواء لنسخة الكمبيوتر أو الموبايل.
+ */
 
 let globalAdministrativeData = [];
 let globalClientsData = [];
@@ -9,54 +11,13 @@ let __reportsAdministrativeAllClients = [];
 let __reportsAdministrativeCurrentData = [];
 let __reportsAdministrativeCurrentClients = [];
 let __reportsAdministrativeLastSearchTerm = '';
+let __reportsAdministrativeTimeFilterMode = 'all'; // all | today | week | month
+let currentAdministrativeSortOrder = 'desc'; // desc | asc
+let currentAdministrativeStatusFilter = 'all'; // all | completed | pending | overdue
 
-function __getReportsAdministrativeDataForAction() {
-    try {
-        const a = Array.isArray(__reportsAdministrativeCurrentData) ? __reportsAdministrativeCurrentData : [];
-        const c = Array.isArray(__reportsAdministrativeCurrentClients) ? __reportsAdministrativeCurrentClients : [];
-        if (a.length || c.length) return { administrative: a, clients: c };
-    } catch (e) { }
-    return {
-        administrative: Array.isArray(__reportsAdministrativeAllData) ? __reportsAdministrativeAllData : [],
-        clients: Array.isArray(__reportsAdministrativeAllClients) ? __reportsAdministrativeAllClients : []
-    };
-}
-
-function __applyAdministrativeSearchAndStatus(baseAdministrative, clients, searchTerm, statusFilter) {
-    const term = String(searchTerm || '').trim().toLowerCase();
-
-    let data = Array.isArray(baseAdministrative) ? baseAdministrative.slice() : [];
-    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
-    const cl = Array.isArray(clients) ? clients : [];
-
-    if (term) {
-        data = data.filter(work => {
-            const client = work.clientId ? clientMap.get(work.clientId) : null;
-            const clientName = client ? String(client.name || '').toLowerCase() : 'عام';
-            const task = work.task ? String(work.task).toLowerCase() : '';
-            const description = work.description ? String(work.description).toLowerCase() : '';
-            const notes = work.notes ? String(work.notes).toLowerCase() : '';
-            return clientName.includes(term) || task.includes(term) || description.includes(term) || notes.includes(term);
-        });
-    }
-
-    if (statusFilter === 'completed') {
-        data = data.filter(work => work.completed === true);
-    } else if (statusFilter === 'pending') {
-        data = data.filter(work => work.completed === false);
-    } else if (statusFilter === 'overdue') {
-        data = data.filter(work => {
-            if (work.completed || !work.dueDate) return false;
-            const today = new Date();
-            const due = new Date(work.dueDate);
-            return due < today;
-        });
-    }
-
-    return { data, clients: cl };
-}
-
+let __reportsAdministrativeChunkTimer = null;
 let __reportsAdministrativeDateLocaleCache = null;
+
 async function __getReportsAdministrativeDateLocaleSetting() {
     if (__reportsAdministrativeDateLocaleCache) return __reportsAdministrativeDateLocaleCache;
     let locale = 'ar-EG';
@@ -70,39 +31,571 @@ async function __getReportsAdministrativeDateLocaleSetting() {
     return locale;
 }
 
+function __parseReportsAdministrativeDateString(dateStr) {
+    try {
+        const s = String(dateStr || '').trim();
+        if (!s) return null;
+        if (/^\d{4}-\d{2}-\d{2}$/.test(s)) {
+            const parts = s.split('-');
+            const year = parseInt(parts[0], 10);
+            const month = parseInt(parts[1], 10);
+            const day = parseInt(parts[2], 10);
+            const d = new Date(year, month - 1, day);
+            return (d.getFullYear() === year && d.getMonth() === (month - 1) && d.getDate() === day) ? d : null;
+        }
+        const m = s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+        if (m) {
+            const day = parseInt(m[1], 10);
+            const month = parseInt(m[2], 10);
+            const year = parseInt(m[3], 10);
+            const d = new Date(year, month - 1, day);
+            if (d.getFullYear() === year && d.getMonth() === (month - 1) && d.getDate() === day) return d;
+        }
+        const d = new Date(s);
+        return Number.isFinite(d.getTime()) ? d : null;
+    } catch (_) {
+        return null;
+    }
+}
+
 function __formatReportsAdministrativeDateForDisplay(dateStr) {
     try {
         if (!dateStr) return '-';
-        const d = new Date(dateStr);
-        if (!Number.isFinite(d.getTime())) return (dateStr || '-');
+        const d = __parseReportsAdministrativeDateString(dateStr);
+        if (!d) return (dateStr || '-');
         return d.toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG');
     } catch (_) {
         return (dateStr || '-');
     }
 }
 
+function __escapeReportsAdministrativeHtml(value) {
+    return String(value == null ? '' : value)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+function __normalizeReportsAdministrativeCellValue(value, fallback = '-') {
+    const text = String(value == null ? '' : value).trim();
+    return text !== '' ? text : fallback;
+}
+
+function __reportsAdministrativeNormalizeSearchValue(value) {
+    const s = window.normalizeDigits ? window.normalizeDigits(value) : String(value || '');
+    return s
+        .toLowerCase()
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ة/g, 'ه')
+        .replace(/ى/g, 'ي')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function __isAdministrativeCompleted(work) {
+    if (!work) return false;
+    const c = work.completed;
+    return c === true || c === 1 || c === '1' || c === 'true';
+}
+
+function __getReportsAdministrativeWorkTimestamp(work) {
+    if (!work) return 0;
+    const d = __parseReportsAdministrativeDateString(work.dueDate || work.createdAt);
+    if (d) return d.getTime();
+    if (work.createdAt) {
+        const t = new Date(work.createdAt).getTime();
+        if (Number.isFinite(t)) return t;
+    }
+    const idNum = Number(work.id);
+    return Number.isFinite(idNum) ? idNum : 0;
+}
+
+// -------------------------------------------------------------
+// تعريفات الأعمدة المرنة ونظام الإظهار والإخفاء (Dynamic Columns)
+// -------------------------------------------------------------
+const __reportsAdministrativeColumnsStorageKey = 'reportsAdministrativeVisibleColumns';
+const __reportsAdministrativeDefaultVisibleColumns = ['clientName', 'task', 'status', 'dueDate', 'assignedTo'];
+
+const __reportsAdministrativeColumnDefinitions = [
+    { key: 'clientName', group: 'clients', label: 'اسم الموكل', icon: 'ri-user-3-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
+    { key: 'clientPhone', group: 'clients', label: 'هاتف الموكل', icon: 'ri-phone-line', cellClass: 'whitespace-nowrap overflow-hidden' },
+    { key: 'task', group: 'tasks', label: 'المهمة', icon: 'ri-task-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
+    { key: 'status', group: 'tasks', label: 'الحالة', icon: 'ri-checkbox-circle-line', cellClass: 'whitespace-nowrap overflow-hidden' },
+    { key: 'dueDate', group: 'tasks', label: 'تاريخ الإنجاز', icon: 'ri-calendar-line', cellClass: 'whitespace-nowrap overflow-hidden' },
+    { key: 'assignedTo', group: 'tasks', label: 'المكلف بالعمل', icon: 'ri-user-star-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
+    { key: 'location', group: 'tasks', label: 'مكان التنفيذ', icon: 'ri-map-pin-line', cellClass: 'whitespace-normal break-words overflow-hidden' },
+    { key: 'notes', group: 'tasks', label: 'الملاحظات', icon: 'ri-sticky-note-line', cellClass: 'whitespace-normal break-words' }
+];
+
+let __reportsAdministrativeVisibleColumnKeysCache = null;
+
+function __getReportsAdministrativeVisibleColumnKeys() {
+    if (Array.isArray(__reportsAdministrativeVisibleColumnKeysCache) && __reportsAdministrativeVisibleColumnKeysCache.length) {
+        return [...__reportsAdministrativeVisibleColumnKeysCache];
+    }
+    try {
+        const raw = localStorage.getItem(__reportsAdministrativeColumnsStorageKey);
+        const parsed = raw ? JSON.parse(raw) : null;
+        if (Array.isArray(parsed)) {
+            const validKeys = __reportsAdministrativeColumnDefinitions.map(col => col.key);
+            const filtered = parsed.filter(key => validKeys.includes(key));
+            if (filtered.length) {
+                __reportsAdministrativeVisibleColumnKeysCache = filtered;
+                return [...__reportsAdministrativeVisibleColumnKeysCache];
+            }
+        }
+    } catch (_) { }
+    __reportsAdministrativeVisibleColumnKeysCache = [...__reportsAdministrativeDefaultVisibleColumns];
+    return [...__reportsAdministrativeVisibleColumnKeysCache];
+}
+
+function __setReportsAdministrativeVisibleColumnKeys(keys) {
+    const validKeys = __reportsAdministrativeColumnDefinitions.map(col => col.key);
+    const nextKeys = (Array.isArray(keys) ? keys : []).filter(key => validKeys.includes(key));
+    __reportsAdministrativeVisibleColumnKeysCache = nextKeys.length ? nextKeys : [...__reportsAdministrativeDefaultVisibleColumns];
+    try {
+        localStorage.setItem(__reportsAdministrativeColumnsStorageKey, JSON.stringify(__reportsAdministrativeVisibleColumnKeysCache));
+    } catch (_) { }
+}
+
+function __getReportsAdministrativeVisibleColumns() {
+    const visibleKeys = __getReportsAdministrativeVisibleColumnKeys();
+    return visibleKeys
+        .map(key => __reportsAdministrativeColumnDefinitions.find(col => col.key === key))
+        .filter(Boolean);
+}
+
+function __getReportsAdministrativeClientsMap() {
+    const clients = Array.isArray(__reportsAdministrativeAllClients) ? __reportsAdministrativeAllClients : [];
+    const byId = new Map();
+    const byName = new Map();
+    clients.forEach(c => {
+        if (c && c.id != null) byId.set(c.id, c);
+        if (c && c.name) byName.set(String(c.name).trim(), c);
+    });
+    return { byId, byName };
+}
+
+function __getReportsAdministrativeRowData(work, clientsMaps) {
+    const maps = clientsMaps || __getReportsAdministrativeClientsMap();
+    let client = work.clientId ? maps.byId?.get(work.clientId) : null;
+    if (!client && work.clientName) {
+        client = maps.byName?.get(String(work.clientName).trim()) || null;
+    }
+    const clientNameVal = (client && client.name) || work.clientName || (work.clientId ? 'غير محدد' : 'عام');
+    const clientPhoneVal = (client && (client.phone || client.mobile)) || (work.clientPhone || '');
+
+    // تحديد الحالة
+    let statusLabel = 'قيد التنفيذ';
+    let isCompleted = __isAdministrativeCompleted(work);
+    let isOverdue = false;
+
+    if (isCompleted) {
+        statusLabel = 'مكتمل';
+    } else if (work.dueDate) {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const due = __parseReportsAdministrativeDateString(work.dueDate);
+        if (due && due < today) {
+            statusLabel = 'متأخر';
+            isOverdue = true;
+        }
+    }
+
+    const taskVal = (work.task && String(work.task).trim()) ? String(work.task).trim() : (work.title || work.description || '');
+    const dueDateVal = work.dueDate ? __formatReportsAdministrativeDateForDisplay(work.dueDate) : '-';
+
+    return {
+        rawWork: work,
+        clientName: __normalizeReportsAdministrativeCellValue(clientNameVal, 'عام'),
+        clientPhone: __normalizeReportsAdministrativeCellValue(clientPhoneVal, '-'),
+        task: __normalizeReportsAdministrativeCellValue(taskVal, '-'),
+        status: statusLabel,
+        isCompleted: isCompleted,
+        isOverdue: isOverdue,
+        dueDate: dueDateVal,
+        assignedTo: __normalizeReportsAdministrativeCellValue(work.assignedTo || work.lawyer, '-'),
+        location: __normalizeReportsAdministrativeCellValue(work.location, '-'),
+        notes: __normalizeReportsAdministrativeCellValue(work.notes, '-')
+    };
+}
+
+// -------------------------------------------------------------
+// قوائم التحكم في الأعمدة المنسدلة من الرأس (In-Header Dropdowns)
+// -------------------------------------------------------------
+function __buildReportsAdministrativeColumnMenuHTML(activeColumnKey) {
+    const visibleKeys = __getReportsAdministrativeVisibleColumnKeys();
+    const visibleSet = new Set(visibleKeys);
+    const currentColumn = __reportsAdministrativeColumnDefinitions.find(col => col.key === activeColumnKey);
+    const sameGroupColumns = currentColumn
+        ? __reportsAdministrativeColumnDefinitions.filter(col => col.group === currentColumn.group && col.key !== activeColumnKey && !visibleSet.has(col.key))
+        : [];
+
+    const items = sameGroupColumns.length ? sameGroupColumns.map(col => `
+        <button type="button" onclick="toggleReportsAdministrativeColumnVisibility(event, '${col.key}', '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right hover:bg-indigo-50 transition-colors text-gray-700">
+            <i class="ri-add-circle-line text-green-600"></i>
+            <span class="flex-1 text-sm font-medium">إضافة ${col.label}</span>
+            <i class="ri-add-line text-green-600 text-sm"></i>
+        </button>
+    `).join('') : `
+        <div class="px-3 py-3 text-sm text-gray-500 text-right bg-gray-50">لا توجد حقول أخرى في نفس الجدول</div>
+    `;
+
+    const canHideCurrent = visibleSet.has(activeColumnKey) && visibleKeys.length > 1;
+
+    return `
+        <div id="reports-admin-column-menu-${activeColumnKey}" class="hidden absolute top-full right-0 mt-2 w-72 max-w-[92vw] bg-white border border-indigo-200 rounded-xl shadow-2xl z-[80] overflow-hidden flex flex-col">
+            ${currentColumn ? `
+                <div class="px-3 py-2 bg-indigo-50 border-b border-indigo-100 text-right shrink-0">
+                    <div class="text-xs font-bold text-indigo-700">حقول ${currentColumn.label}</div>
+                </div>
+                <button type="button" onclick="hideReportsAdministrativeColumn(event, '${activeColumnKey}')" class="w-full flex items-center gap-2 px-3 py-2.5 text-right ${canHideCurrent ? 'text-red-600 hover:bg-red-50' : 'text-gray-400 bg-gray-50 cursor-not-allowed'} transition-colors shrink-0" ${canHideCurrent ? '' : 'disabled'}>
+                    <i class="ri-eye-off-line"></i>
+                    <span class="text-sm font-semibold">إخفاء ${currentColumn.label}</span>
+                </button>
+            ` : ''}
+            <div class="border-t border-indigo-100 shrink-0"></div>
+            <div class="overflow-y-auto flex-1 max-h-80">${items}</div>
+            <div class="border-t border-indigo-100 shrink-0"></div>
+            <button type="button" onclick="resetReportsAdministrativeColumns(event)" class="w-full flex items-center gap-2 px-3 py-2.5 text-right text-indigo-700 hover:bg-indigo-50 transition-colors shrink-0">
+                <i class="ri-refresh-line"></i>
+                <span class="text-sm font-semibold">إرجاع الافتراضي</span>
+            </button>
+        </div>
+    `;
+}
+
+function closeReportsAdministrativeColumnMenus() {
+    document.querySelectorAll('[id^="reports-admin-column-menu-"]').forEach(menu => {
+        try { menu.classList.add('hidden'); } catch (_) { }
+    });
+}
+
+function __cleanupDetachedAdministrativeColumnMenus() {
+    document.querySelectorAll('body > [id^="reports-admin-column-menu-"]').forEach(menu => {
+        try { menu.remove(); } catch (_) { }
+    });
+}
+
+function __positionReportsAdministrativeColumnMenu(menu, anchorEl) {
+    try {
+        if (!menu || !anchorEl || typeof anchorEl.getBoundingClientRect !== 'function') return;
+        const rect = anchorEl.getBoundingClientRect();
+        const vw = window.innerWidth || document.documentElement.clientWidth || 0;
+        const vh = window.innerHeight || document.documentElement.clientHeight || 0;
+
+        menu.style.position = 'fixed';
+        menu.style.right = 'auto';
+        menu.style.bottom = 'auto';
+        menu.style.marginTop = '0px';
+        menu.style.zIndex = '999999';
+
+        const menuW = Math.max(220, Math.round(menu.offsetWidth || 0) || 0);
+
+        let left = Math.round(rect.right - menuW);
+        let top = Math.round(rect.bottom + 6);
+
+        const pad = 8;
+        if (left < pad) left = pad;
+        if (left + menuW > vw - pad) left = Math.max(pad, vw - pad - menuW);
+
+        // Always keep menu below header button and limit height to visible viewport
+        if (top < pad) top = pad;
+        const availableHeight = Math.max(140, Math.floor(vh - top - pad));
+        menu.style.maxHeight = availableHeight + 'px';
+
+        menu.style.left = left + 'px';
+        menu.style.top = top + 'px';
+    } catch (_) { }
+}
+
+function toggleReportsAdministrativeColumnMenu(event, columnKey) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    const menu = document.getElementById(`reports-admin-column-menu-${columnKey}`);
+    if (!menu) return;
+    const shouldOpen = menu.classList.contains('hidden');
+    closeReportsAdministrativeColumnMenus();
+    if (!shouldOpen) return;
+
+    try {
+        if (menu && menu.parentElement && menu.parentElement !== document.body) {
+            document.body.appendChild(menu);
+        }
+    } catch (_) { }
+
+    menu.classList.remove('hidden');
+    try {
+        const anchorEl = (event && event.currentTarget) ? event.currentTarget : null;
+        __positionReportsAdministrativeColumnMenu(menu, anchorEl);
+    } catch (_) { }
+}
+
+function toggleReportsAdministrativeColumnVisibility(event, columnKey, anchorColumnKey = null) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    closeReportsAdministrativeColumnMenus();
+    const currentKeys = __getReportsAdministrativeVisibleColumnKeys();
+    const currentSet = new Set(currentKeys);
+    if (currentSet.has(columnKey) && currentKeys.length === 1) {
+        if (typeof showToast === 'function') showToast('لا يمكن إخفاء كل الأعمدة', 'info');
+        return;
+    }
+    if (currentSet.has(columnKey)) {
+        __setReportsAdministrativeVisibleColumnKeys(currentKeys.filter(key => key !== columnKey));
+        __renderReportsAdministrativeCurrentTable();
+        return;
+    }
+    const nextKeys = [...currentKeys];
+    const anchorIndex = anchorColumnKey ? nextKeys.indexOf(anchorColumnKey) : -1;
+    if (anchorIndex !== -1) nextKeys.splice(anchorIndex + 1, 0, columnKey);
+    else nextKeys.push(columnKey);
+    __setReportsAdministrativeVisibleColumnKeys(nextKeys);
+    __renderReportsAdministrativeCurrentTable();
+}
+
+function hideReportsAdministrativeColumn(event, columnKey) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    closeReportsAdministrativeColumnMenus();
+    const currentKeys = __getReportsAdministrativeVisibleColumnKeys();
+    if (!currentKeys.includes(columnKey)) return;
+    if (currentKeys.length === 1) {
+        if (typeof showToast === 'function') showToast('لا يمكن إخفاء كل الأعمدة', 'info');
+        return;
+    }
+    __setReportsAdministrativeVisibleColumnKeys(currentKeys.filter(key => key !== columnKey));
+    __renderReportsAdministrativeCurrentTable();
+}
+
+function resetReportsAdministrativeColumns(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    closeReportsAdministrativeColumnMenus();
+    __setReportsAdministrativeVisibleColumnKeys(__reportsAdministrativeDefaultVisibleColumns);
+    __renderReportsAdministrativeCurrentTable();
+}
+
+let __reportsAdministrativeStatsExpanded = false;
+
+function toggleReportsAdministrativeStats(event) {
+    if (event) {
+        event.preventDefault();
+        event.stopPropagation();
+    }
+    __reportsAdministrativeStatsExpanded = !__reportsAdministrativeStatsExpanded;
+    const container = document.getElementById('admin-stats-collapse-container');
+    const arrow = document.getElementById('admin-stats-toggle-arrow');
+
+    if (container) {
+        if (__reportsAdministrativeStatsExpanded) {
+            container.classList.remove('hidden');
+        } else {
+            container.classList.add('hidden');
+        }
+    }
+    if (arrow) {
+        arrow.className = __reportsAdministrativeStatsExpanded ? 'ri-arrow-up-s-line text-sm text-indigo-700' : 'ri-arrow-down-s-line text-sm text-indigo-700';
+    }
+}
+
+function __renderReportsAdministrativeCurrentTable() {
+    const reportContent = document.getElementById('administrative-report-content');
+    if (!reportContent) return;
+    closeReportsAdministrativeColumnMenus();
+    const { administrative, clients } = __getReportsAdministrativeDataForAction();
+    reportContent.innerHTML = generateAdministrativeReportHTML(administrative, clients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter);
+}
+
+// -------------------------------------------------------------
+// جلب البيانات والتهيئة الرئيسية
+// -------------------------------------------------------------
+function __getReportsAdministrativeDataForAction() {
+    try {
+        if (Array.isArray(__reportsAdministrativeCurrentData)) {
+            return {
+                administrative: __reportsAdministrativeCurrentData,
+                clients: Array.isArray(__reportsAdministrativeCurrentClients) ? __reportsAdministrativeCurrentClients : __reportsAdministrativeAllClients
+            };
+        }
+    } catch (e) { }
+    return {
+        administrative: Array.isArray(__reportsAdministrativeAllData) ? __reportsAdministrativeAllData : [],
+        clients: Array.isArray(__reportsAdministrativeAllClients) ? __reportsAdministrativeAllClients : []
+    };
+}
+
+function __reportsAdministrativeIsInTimeFilter(work) {
+    if (__reportsAdministrativeTimeFilterMode === 'all') return true;
+
+    const dateStr = work.dueDate || work.createdAt;
+    const d = __parseReportsAdministrativeDateString(dateStr);
+    if (!d) return false;
+
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const sd = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+    if (__reportsAdministrativeTimeFilterMode === 'today') {
+        return sd.getFullYear() === today.getFullYear() && sd.getMonth() === today.getMonth() && sd.getDate() === today.getDate();
+    }
+
+    if (__reportsAdministrativeTimeFilterMode === 'tomorrow') {
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        return sd.getFullYear() === tomorrow.getFullYear() && sd.getMonth() === tomorrow.getMonth() && sd.getDate() === tomorrow.getDate();
+    }
+
+    if (__reportsAdministrativeTimeFilterMode === 'week' || __reportsAdministrativeTimeFilterMode === 'current-week') {
+        const day = today.getDay(); // 0 is Sun, 6 is Sat
+        const diff = (day === 6) ? 0 : (day + 1);
+        const satCurrent = new Date(today);
+        satCurrent.setDate(today.getDate() - diff);
+        const friCurrent = new Date(satCurrent);
+        friCurrent.setDate(satCurrent.getDate() + 6);
+        return sd >= satCurrent && sd <= friCurrent;
+    }
+
+    if (__reportsAdministrativeTimeFilterMode === 'month') {
+        return sd.getFullYear() === today.getFullYear() && sd.getMonth() === today.getMonth();
+    }
+
+    return true;
+}
+
+function __reportsAdministrativeGetViewModeLabel() {
+    if (__reportsAdministrativeTimeFilterMode === 'today') return 'اليوم';
+    if (__reportsAdministrativeTimeFilterMode === 'tomorrow') return 'الغد';
+    if (__reportsAdministrativeTimeFilterMode === 'week' || __reportsAdministrativeTimeFilterMode === 'current-week') return 'الأسبوع الحالي';
+    if (__reportsAdministrativeTimeFilterMode === 'month') return 'الشهر الحالي';
+    return 'كل المهام';
+}
+
+function __reportsAdministrativeGetSortLabel() {
+    return currentAdministrativeSortOrder === 'desc' ? 'الأحدث' : 'الأقدم';
+}
+
+function __updateAdminViewMenuButtonLabel() {
+    try {
+        const btn = document.getElementById('admin-view-menu-btn');
+        if (!btn) return;
+        const textEl = btn.querySelector('[data-admin-view-label]');
+        if (!textEl) return;
+        textEl.textContent = 'فرز';
+    } catch (_) { }
+}
+
+function __reportsAdministrativeApplyFiltersAndRender() {
+    const base = Array.isArray(__reportsAdministrativeAllData) ? __reportsAdministrativeAllData : [];
+    const clients = Array.isArray(__reportsAdministrativeAllClients) ? __reportsAdministrativeAllClients : [];
+    const clientMaps = __getReportsAdministrativeClientsMap();
+
+    // 1. فلترة الحالة (Status)
+    let filtered = base;
+    if (currentAdministrativeStatusFilter === 'completed') {
+        filtered = filtered.filter(w => __isAdministrativeCompleted(w));
+    } else if (currentAdministrativeStatusFilter === 'pending') {
+        filtered = filtered.filter(w => !__isAdministrativeCompleted(w));
+    } else if (currentAdministrativeStatusFilter === 'overdue') {
+        filtered = filtered.filter(w => {
+            if (__isAdministrativeCompleted(w) || !w.dueDate) return false;
+            const today = new Date();
+            today.setHours(0, 0, 0, 0);
+            const due = __parseReportsAdministrativeDateString(w.dueDate);
+            return due && due < today;
+        });
+    }
+
+    // 2. فلترة الوقت (Time filter)
+    filtered = filtered.filter(__reportsAdministrativeIsInTimeFilter);
+
+    // 3. فلترة البحث (Search Term)
+    const term = __reportsAdministrativeNormalizeSearchValue(__reportsAdministrativeLastSearchTerm);
+    if (term) {
+        const visibleCols = __getReportsAdministrativeVisibleColumns();
+        const visibleKeys = visibleCols.map(c => c.key);
+        filtered = filtered.filter(work => {
+            const rowData = __getReportsAdministrativeRowData(work, clientMaps);
+            const inVisible = visibleKeys.some(key => __reportsAdministrativeNormalizeSearchValue(rowData[key]).includes(term));
+            if (inVisible) return true;
+            // بحث إضافي في الحقول الجوهرية (المهمة، الموكل، الملاحظات) لراحة المستخدم
+            const extra = [rowData.clientName, rowData.task, rowData.notes, rowData.location, rowData.assignedTo];
+            return extra.some(v => __reportsAdministrativeNormalizeSearchValue(v).includes(term));
+        });
+    }
+
+    // 4. الترتيب (Sorting)
+    filtered.sort((a, b) => {
+        const timeA = __getReportsAdministrativeWorkTimestamp(a);
+        const timeB = __getReportsAdministrativeWorkTimestamp(b);
+        return currentAdministrativeSortOrder === 'desc' ? (timeB - timeA) : (timeA - timeB);
+    });
+
+    __reportsAdministrativeCurrentData = filtered;
+    __reportsAdministrativeCurrentClients = clients;
+
+    // تحديث كروت احصائيات النشطة
+    document.querySelectorAll('.administrative-stats-grid > div').forEach(card => {
+        const cardStatus = card.getAttribute('data-status');
+        if (cardStatus === currentAdministrativeStatusFilter) {
+            card.style.borderWidth = '3px';
+            card.style.transform = 'scale(1.03)';
+        } else {
+            card.style.borderWidth = '2px';
+            card.style.transform = 'scale(1)';
+        }
+    });
+
+    const reportContent = document.getElementById('administrative-report-content');
+    if (reportContent) {
+        __cleanupDetachedAdministrativeColumnMenus();
+        reportContent.innerHTML = generateAdministrativeReportHTML(filtered, clients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter);
+    }
+
+    try {
+        if (__reportsAdministrativeTimeFilterMode !== 'all' && typeof showToast === 'function') {
+            showToast(`عرض ${filtered.length} مهمة (${__reportsAdministrativeGetViewModeLabel()})`, 'info');
+        }
+    } catch (_) { }
+}
 
 async function updateAdministrativeReportContent(reportName, reportType) {
     const reportContent = document.getElementById('report-content');
+    if (!reportContent) return;
 
     try {
-
         await __getReportsAdministrativeDateLocaleSetting();
 
-        const administrative = await getAllAdministrative();
-        const clients = await getAllClients();
+        const [administrative, clients] = await Promise.all([
+            typeof getAllAdministrative === 'function' ? getAllAdministrative() : getAll('administrative'),
+            typeof getAllClients === 'function' ? getAllClients() : getAll('clients')
+        ]);
 
-
-        globalAdministrativeData = administrative;
-        globalClientsData = clients;
+        globalAdministrativeData = administrative || [];
+        globalClientsData = clients || [];
 
         __reportsAdministrativeAllData = Array.isArray(administrative) ? administrative : [];
         __reportsAdministrativeAllClients = Array.isArray(clients) ? clients : [];
         __reportsAdministrativeLastSearchTerm = '';
-        __reportsAdministrativeCurrentData = __reportsAdministrativeAllData;
-        __reportsAdministrativeCurrentClients = __reportsAdministrativeAllClients;
+        currentAdministrativeStatusFilter = 'all';
+        __reportsAdministrativeTimeFilterMode = 'all';
+        currentAdministrativeSortOrder = 'desc';
 
-        const colors = { bg: '#6366f1', bgHover: '#4f46e5', bgLight: '#f8fafc', text: '#4f46e5', textLight: '#a5b4fc' };
+        __reportsAdministrativeCurrentData = [...__reportsAdministrativeAllData];
+        __reportsAdministrativeCurrentClients = [...__reportsAdministrativeAllClients];
+        __reportsAdministrativeStatsExpanded = false;
+
+        const colors = { bg: '#6366f1', bgHover: '#4f46e5', bgLight: '#f5f3ff', text: '#6366f1', textLight: '#a5b4fc' };
 
         reportContent.innerHTML = `
             <div class="h-full flex flex-col">
@@ -116,12 +609,40 @@ async function updateAdministrativeReportContent(reportName, reportType) {
                         <input type="text" id="administrative-search" class="w-full pl-4 pr-10 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:border-transparent transition-all" placeholder="البحث في ${reportName}..." onfocus="this.style.boxShadow='0 0 0 2px ${colors.bg}40'" onblur="this.style.boxShadow='none'">
                     </div>
                     <div class="flex items-center justify-center md:justify-start gap-2 w-full md:w-auto">
-                        <button onclick="toggleAdministrativeSort()" class="flex items-center gap-2 px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors" id="administrative-sort-btn">
-                            <i class="ri-time-line"></i>
-                            <span>الأحدث</span>
+                        <!-- زر احصائيات -->
+                        <button id="admin-stats-toggle-btn" onclick="toggleReportsAdministrativeStats(event)" class="flex items-center gap-1.5 px-3 py-2 bg-indigo-50 text-indigo-800 border border-indigo-200 rounded-lg hover:bg-indigo-100 transition-colors text-xs md:text-sm font-semibold">
+                            <i class="ri-bar-chart-2-line text-indigo-600 text-sm"></i>
+                            <span>احصائيات</span>
+                            <i id="admin-stats-toggle-arrow" class="${__reportsAdministrativeStatsExpanded ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'} text-sm text-indigo-700"></i>
                         </button>
+                        <!-- قائمة الفلترة والترتيب -->
                         <div class="relative">
-                            <button onclick="toggleExportMenuAdmin()" id="export-btn-admin" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+                            <button id="admin-view-menu-btn" onclick="toggleAdminViewMenu()" class="flex items-center gap-2 px-3 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition-colors text-xs md:text-sm font-medium">
+                                <i class="ri-filter-3-line"></i>
+                                <span data-admin-view-label>فرز</span>
+                                <i class="ri-arrow-down-s-line text-sm"></i>
+                            </button>
+                            <div id="admin-view-menu" class="hidden absolute right-0 mt-1 rounded-xl shadow-2xl z-50 p-2.5" style="min-width: 250px; width: 260px; max-width: 90vw; box-sizing: border-box; background-color: #e2e8f0; border: 1px solid #94a3b8;">
+                                <div class="text-[11px] font-bold text-slate-700 mb-1.5 text-right px-0.5">فلترة المهام</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px; margin-bottom: 6px;">
+                                    <button type="button" data-time-mode="all" onclick="setAdminTimeFilterMode('all')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; grid-column: span 2; background-color: #ffffff;">كل المهام</button>
+                                    <button type="button" data-time-mode="today" onclick="setAdminTimeFilterMode('today')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">اليوم</button>
+                                    <button type="button" data-time-mode="tomorrow" onclick="setAdminTimeFilterMode('tomorrow')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">الغد</button>
+                                    <button type="button" data-time-mode="current-week" onclick="setAdminTimeFilterMode('current-week')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">الأسبوع الحالي</button>
+                                    <button type="button" data-time-mode="month" onclick="setAdminTimeFilterMode('month')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">الشهر الحالي</button>
+                                </div>
+                                <div style="border-top: 1px solid #cbd5e1; margin: 6px 0;"></div>
+                                <div class="text-[11px] font-bold text-slate-700 mb-1.5 text-right px-0.5">الترتيب</div>
+                                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 5px;">
+                                    <button type="button" data-sort-mode="desc" onclick="setAdminSortOrder('desc')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">الأحدث</button>
+                                    <button type="button" data-sort-mode="asc" onclick="setAdminSortOrder('asc')" class="py-1.5 px-2 text-center rounded-lg border text-xs transition-colors shadow-sm" style="border: 1px solid #cbd5e1; white-space: nowrap; background-color: #ffffff;">الأقدم</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- قائمة التصدير -->
+                        <div class="relative">
+                            <button onclick="toggleExportMenuAdmin()" id="export-btn-admin" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs md:text-sm font-medium">
                                 <i class="ri-download-line"></i>
                                 <span>تصدير</span>
                                 <i class="ri-arrow-down-s-line text-sm"></i>
@@ -138,7 +659,9 @@ async function updateAdministrativeReportContent(reportName, reportType) {
                                 ${typeof isElectronApp !== 'function' || !isElectronApp() ? `<button onclick="exportAdministrativeReportWhatsApp()" class="export-menu-item-whatsapp w-full text-right px-4 py-2 bg-green-50 hover:bg-green-100 rounded-b-lg flex items-center gap-2 text-gray-800 border border-green-200"><span>واتساب</span><i class="ri-whatsapp-line text-green-600"></i></button>` : ''}
                             </div>
                         </div>
-                        <button onclick="printAdministrativeReport()" class="flex items-center gap-2 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors">
+
+                        <!-- زر الطباعة -->
+                        <button onclick="printAdministrativeReport()" class="flex items-center gap-2 px-3 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-xs md:text-sm font-medium">
                             <i class="ri-printer-line"></i>
                             <span>طباعة</span>
                         </button>
@@ -146,16 +669,23 @@ async function updateAdministrativeReportContent(reportName, reportType) {
                 </div>
                 
                 <!-- محتوى التقرير -->
-                <div class="bg-white rounded-lg border border-gray-200 pt-0 pb-6 pl-0 pr-0 relative flex-1 overflow-y-auto overflow-x-auto" id="administrative-report-content">
-                    ${generateAdministrativeReportHTML(__reportsAdministrativeCurrentData, __reportsAdministrativeCurrentClients)}
+                <div class="bg-white rounded-lg border border-gray-200 p-0 relative flex-1 min-h-0 flex flex-col overflow-hidden" id="administrative-report-content">
+                    ${generateAdministrativeReportHTML(__reportsAdministrativeCurrentData, __reportsAdministrativeCurrentClients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter)}
                 </div>
             </div>
         `;
 
-
-        document.getElementById('administrative-search').addEventListener('input', function (e) {
-            filterAdministrativeReport(e.target.value, administrative, clients);
-        });
+        const searchEl = document.getElementById('administrative-search');
+        if (searchEl) {
+            let debounceT;
+            searchEl.addEventListener('input', function (e) {
+                clearTimeout(debounceT);
+                debounceT = setTimeout(() => {
+                    __reportsAdministrativeLastSearchTerm = e.target.value;
+                    __reportsAdministrativeApplyFiltersAndRender();
+                }, 150);
+            });
+        }
 
     } catch (error) {
         console.error('Error loading administrative data:', error);
@@ -165,7 +695,7 @@ async function updateAdministrativeReportContent(reportName, reportType) {
                     <div class="text-center text-red-500 py-12">
                         <i class="ri-error-warning-line text-6xl mb-4"></i>
                         <h3 class="text-xl font-bold mb-2">خطأ في تحميل البيانات</h3>
-                        <p class="text-gray-400">حدث خطأ أثناء تحميل بيانات الأعمال الإدارية</p>
+                        <p class="text-gray-400">حدث خطأ أثناء تحميل بيانات المهام</p>
                     </div>
                 </div>
             </div>
@@ -173,222 +703,211 @@ async function updateAdministrativeReportContent(reportName, reportType) {
     }
 }
 
-
+// -------------------------------------------------------------
+// توليد واجهة التقرير وجدول المهام (HTML Generator)
+// -------------------------------------------------------------
 function generateAdministrativeReportHTML(administrative, clients, sortOrder = 'desc', statusFilter = 'all') {
-    if (administrative.length === 0) {
-        return `
-            <div class="text-center text-gray-500 py-16">
-                <div class="mb-6">
-                    <i class="ri-briefcase-line text-8xl text-indigo-200"></i>
-                </div>
-                <h3 class="text-2xl font-bold mb-3 text-gray-700">لا توجد بيانات</h3>
-                <p class="text-gray-400 text-lg">لم يتم العثور على أعمال إدارية</p>
-            </div>
-        `;
+    __cleanupDetachedAdministrativeColumnMenus();
+    if (__reportsAdministrativeChunkTimer) {
+        cancelAnimationFrame(__reportsAdministrativeChunkTimer);
+        __reportsAdministrativeChunkTimer = null;
     }
-
-
-    let filteredAdministrative = administrative;
-    if (statusFilter === 'completed') {
-        filteredAdministrative = administrative.filter(work => work.completed === true);
-    } else if (statusFilter === 'pending') {
-        filteredAdministrative = administrative.filter(work => work.completed === false);
-    } else if (statusFilter === 'overdue') {
-        filteredAdministrative = administrative.filter(work => {
-            if (work.completed || !work.dueDate) return false;
-            const today = new Date();
-            const due = new Date(work.dueDate);
-            return due < today;
-        });
-    }
-
-
-    filteredAdministrative.sort((a, b) => {
-        const dateA = new Date(a.dueDate || a.createdAt);
-        const dateB = new Date(b.dueDate || b.createdAt);
-
-        if (sortOrder === 'desc') {
-            return dateB - dateA;
-        } else {
-            return dateA - dateB;
-        }
-    });
-
-    const clientMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
-    let tableRows = '';
-    filteredAdministrative.forEach((work, i) => {
-
-        const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-indigo-50 to-blue-50' : 'bg-white';
-
-
-        const client = work.clientId ? clientMap.get(work.clientId) : null;
-        const clientName = client ? client.name : 'عام';
-
-
-        const dueDate = __formatReportsAdministrativeDateForDisplay(work.dueDate);
-
-
-        const statusIcon = work.completed ?
-            '<i class="ri-checkbox-circle-fill text-green-600"></i>' :
-            '<i class="ri-time-line text-orange-600"></i>';
-        const statusText = work.completed ? 'مكتمل' : 'قيد التنفيذ';
-        const statusColor = work.completed ? 'text-green-600' : 'text-orange-600';
-
-
-        let priorityColor = 'text-gray-600';
-        let priorityIcon = 'ri-calendar-line';
-        if (work.dueDate && !work.completed) {
-            const today = new Date();
-            const due = new Date(work.dueDate);
-            const diffDays = Math.ceil((due - today) / (1000 * 60 * 60 * 24));
-
-            if (diffDays < 0) {
-                priorityColor = 'text-red-600';
-                priorityIcon = 'ri-alarm-warning-line';
-            } else if (diffDays <= 3) {
-                priorityColor = 'text-orange-600';
-                priorityIcon = 'ri-time-line';
-            } else if (diffDays <= 7) {
-                priorityColor = 'text-yellow-600';
-                priorityIcon = 'ri-calendar-check-line';
-            } else {
-                priorityColor = 'text-green-600';
-                priorityIcon = 'ri-calendar-line';
-            }
-        }
-
-
-        const taskValue = (work.task && String(work.task).trim()) ? String(work.task).trim() : (work.description || '');
-        const parts = [taskValue, work.notes].filter(s => s && String(s).trim());
-        const fullTaskText = parts.join(' - ');
-
-        tableRows += `
-            <tr class="report-record ${rowClass} border-b border-gray-200 hover:bg-gradient-to-l hover:from-indigo-100 hover:to-blue-100 transition-all duration-300 hover:shadow-sm">
-                <td class="py-4 px-6 text-center border-l border-gray-200">
-                    <div class="font-bold text-base text-gray-800 hover:text-indigo-700 transition-colors duration-200" title="${fullTaskText}">${fullTaskText}</div>
-                </td>
-                <td class="py-4 px-6 text-center border-l border-gray-200" style="width: 140px;">
-                    <div class="flex items-center justify-center gap-2 font-bold text-sm ${statusColor} whitespace-nowrap">
-                        ${statusIcon}
-                        <span>${statusText}</span>
-                    </div>
-                </td>
-                <td class="py-4 px-6 text-center" style="width: 160px;">
-                    <div class="font-medium text-sm text-gray-700 whitespace-nowrap ${priorityColor}">
-                        <i class="${priorityIcon}"></i> ${dueDate}
-                    </div>
-                </td>
-            </tr>
-        `;
-    });
-
 
     const totalWorks = __reportsAdministrativeAllData.length;
-    const completedWorks = __reportsAdministrativeAllData.filter(work => work.completed === true).length;
-    const pendingWorks = __reportsAdministrativeAllData.filter(work => work.completed === false).length;
+    const completedWorks = __reportsAdministrativeAllData.filter(work => __isAdministrativeCompleted(work)).length;
+    const pendingWorks = __reportsAdministrativeAllData.filter(work => !__isAdministrativeCompleted(work)).length;
     const overdueWorks = __reportsAdministrativeAllData.filter(work => {
-        if (work.completed || !work.dueDate) return false;
+        if (__isAdministrativeCompleted(work) || !work.dueDate) return false;
         const today = new Date();
-        const due = new Date(work.dueDate);
-        return due < today;
+        today.setHours(0, 0, 0, 0);
+        const due = __parseReportsAdministrativeDateString(work.dueDate);
+        return due && due < today;
     }).length;
 
-    return `
-        <div class="administrative-report-container" style="height: 100%; overflow-y: auto; position: relative;">
-            <!-- إحصائيات سريعة -->
-            <style>
-                @media (max-width:768px){
-                    #report-content .administrative-stats-grid{
-                        display:grid !important;
-                        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-                        gap: 8px !important;
-                    }
+    const statsGridHtml = `
+        <style>
+            @media (max-width:768px){
+                #report-content .administrative-stats-grid{
+                    display:grid !important;
+                    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+                    gap: 8px !important;
                 }
-                @media (min-width:769px){
-                    #report-content .administrative-stats-grid{
-                        display:grid !important;
-                        grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
-                        gap: 16px !important;
-                    }
+            }
+            @media (min-width:769px){
+                #report-content .administrative-stats-grid{
+                    display:grid !important;
+                    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+                    gap: 16px !important;
                 }
-            </style>
-            <div class="administrative-stats-grid mb-6">
-                <div onclick="filterAdministrativeByStatus('all')" class="bg-gradient-to-br from-blue-50 to-blue-100 p-3 rounded-xl border-2 border-blue-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-status="all">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
-                            <i class="ri-briefcase-line text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm text-blue-600 font-medium">إجمالي الأعمال</p>
-                            <p class="text-lg font-bold text-blue-700">${totalWorks}</p>
-                        </div>
+            }
+        </style>
+        <div class="administrative-stats-grid mb-4">
+            <div onclick="filterAdministrativeByStatus('all')" class="bg-gradient-to-br from-indigo-50 to-blue-50 p-3 rounded-xl border-2 border-indigo-200 cursor-pointer hover:shadow-lg transition-all duration-200 ${statusFilter === 'all' ? 'border-indigo-600 scale-[1.02]' : ''}" data-status="all">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center shadow-md">
+                        <i class="ri-briefcase-line text-white text-lg"></i>
                     </div>
-                </div>
-                
-                <div onclick="filterAdministrativeByStatus('completed')" class="bg-gradient-to-br from-green-50 to-green-100 p-3 rounded-xl border-2 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-status="completed">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-                            <i class="ri-checkbox-circle-line text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm text-green-600 font-medium">مكتملة</p>
-                            <p class="text-lg font-bold text-green-700">${completedWorks}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div onclick="filterAdministrativeByStatus('pending')" class="bg-gradient-to-br from-yellow-50 to-yellow-100 p-3 rounded-xl border-2 border-yellow-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-status="pending">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-yellow-600 rounded-full flex items-center justify-center">
-                            <i class="ri-time-line text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm text-yellow-600 font-medium">قيد التنفيذ</p>
-                            <p class="text-lg font-bold text-yellow-700">${pendingWorks}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <div onclick="filterAdministrativeByStatus('overdue')" class="bg-gradient-to-br from-red-50 to-red-100 p-3 rounded-xl border-2 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200 hover:scale-105" data-status="overdue">
-                    <div class="flex items-center gap-3">
-                        <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center">
-                            <i class="ri-alarm-warning-line text-white text-lg"></i>
-                        </div>
-                        <div>
-                            <p class="text-sm text-red-600 font-medium">متأخرة</p>
-                            <p class="text-lg font-bold text-red-700">${overdueWorks}</p>
-                        </div>
+                    <div>
+                        <p class="text-xs text-indigo-600 font-medium">إجمالي الأعمال</p>
+                        <p class="text-lg font-bold text-indigo-800">${totalWorks}</p>
                     </div>
                 </div>
             </div>
             
-            <!-- جدول الأعمال الإدارية -->
-            <div class="bg-white rounded-2xl shadow-xl border border-gray-100">
-                <table class="w-full border-separate" style="border-spacing: 0;">
+            <div onclick="filterAdministrativeByStatus('completed')" class="bg-gradient-to-br from-green-50 to-emerald-50 p-3 rounded-xl border-2 border-green-200 cursor-pointer hover:shadow-lg transition-all duration-200 ${statusFilter === 'completed' ? 'border-green-600 scale-[1.02]' : ''}" data-status="completed">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center shadow-md">
+                        <i class="ri-checkbox-circle-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-green-600 font-medium">مكتملة</p>
+                        <p class="text-lg font-bold text-green-800">${completedWorks}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div onclick="filterAdministrativeByStatus('pending')" class="bg-gradient-to-br from-amber-50 to-yellow-50 p-3 rounded-xl border-2 border-amber-200 cursor-pointer hover:shadow-lg transition-all duration-200 ${statusFilter === 'pending' ? 'border-amber-500 scale-[1.02]' : ''}" data-status="pending">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-amber-500 rounded-full flex items-center justify-center shadow-md">
+                        <i class="ri-time-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-amber-600 font-medium">قيد التنفيذ</p>
+                        <p class="text-lg font-bold text-amber-800">${pendingWorks}</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div onclick="filterAdministrativeByStatus('overdue')" class="bg-gradient-to-br from-red-50 to-rose-50 p-3 rounded-xl border-2 border-red-200 cursor-pointer hover:shadow-lg transition-all duration-200 ${statusFilter === 'overdue' ? 'border-red-600 scale-[1.02]' : ''}" data-status="overdue">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 bg-red-600 rounded-full flex items-center justify-center shadow-md">
+                        <i class="ri-alarm-warning-line text-white text-lg"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-red-600 font-medium">متأخرة</p>
+                        <p class="text-lg font-bold text-red-800">${overdueWorks}</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+    if (!administrative || administrative.length === 0) {
+        return `
+            <div class="administrative-report-container flex-1 min-h-0 flex flex-col overflow-y-auto p-0" style="height: 100%; position: relative;">
+                <div id="admin-stats-collapse-container" class="${__reportsAdministrativeStatsExpanded ? '' : 'hidden'} p-2 border-b border-gray-100 bg-gray-50/50 transition-all duration-300 shrink-0">
+                    ${statsGridHtml}
+                </div>
+                <div class="text-center text-gray-500 py-16 bg-white rounded-2xl border border-gray-100">
+                    <div class="mb-4">
+                        <i class="ri-briefcase-line text-7xl text-indigo-200"></i>
+                    </div>
+                    <h3 class="text-xl font-bold mb-2 text-gray-700">لا توجد بيانات</h3>
+                    <p class="text-gray-400 text-sm">لم يتم العثور على أعمال إدارية مطابقة للتصفية</p>
+                </div>
+            </div>
+        `;
+    }
+
+    const visibleColumns = __getReportsAdministrativeVisibleColumns();
+    const columnWidth = (100 / Math.max(visibleColumns.length, 1)).toFixed(2);
+    const clientMaps = __getReportsAdministrativeClientsMap();
+
+    const buildRowHtml = (work, i) => {
+        const rowClass = i % 2 === 0 ? 'bg-gradient-to-l from-indigo-50/50 to-blue-50/30' : 'bg-white';
+        const rowData = __getReportsAdministrativeRowData(work, clientMaps);
+
+        const cellsHtml = visibleColumns.map(col => {
+            const value = rowData[col.key];
+
+            if (col.key === 'status') {
+                let statusIcon = '<i class="ri-time-line text-amber-500"></i>';
+                let statusClass = 'text-amber-700 bg-amber-50 border-amber-200';
+                if (rowData.isCompleted) {
+                    statusIcon = '<i class="ri-checkbox-circle-fill text-green-600"></i>';
+                    statusClass = 'text-green-700 bg-green-50 border-green-200';
+                } else if (rowData.isOverdue) {
+                    statusIcon = '<i class="ri-alarm-warning-fill text-red-600"></i>';
+                    statusClass = 'text-red-700 bg-red-50 border-red-200';
+                }
+                return `
+                    <td class="py-2 px-3 md:py-4 md:px-6 text-center border-l border-gray-200 align-middle">
+                        <div class="inline-flex items-center justify-center gap-1.5 px-3 py-1 rounded-full border text-xs md:text-sm font-bold ${statusClass}">
+                            ${statusIcon}
+                            <span>${value}</span>
+                        </div>
+                    </td>
+                `;
+            }
+
+            const escaped = __escapeReportsAdministrativeHtml(value);
+            return `
+                <td class="py-2 px-3 md:py-4 md:px-6 text-center border-l border-gray-200 align-middle">
+                    <div class="font-bold text-sm md:text-base text-gray-800 hover:text-indigo-700 transition-colors duration-200 ${col.cellClass}" title="${escaped}">
+                        ${escaped}
+                    </div>
+                </td>
+            `;
+        }).join('');
+
+        return `
+            <tr class="report-record ${rowClass} border-b border-gray-200 hover:bg-gradient-to-l hover:from-indigo-100 hover:to-blue-100 transition-all duration-300 hover:shadow-sm">
+                ${cellsHtml}
+            </tr>
+        `;
+    };
+
+    const initialBatchSize = 100;
+    const initialRows = administrative.slice(0, initialBatchSize).map((w, i) => buildRowHtml(w, i)).join('');
+
+    const headerHtml = visibleColumns.map(col => `
+        <th style="position: sticky; top: 0; z-index: 20; width: ${columnWidth}%; min-width: 150px; background-color: #6366f1 !important; color: white !important; border-color: #4f46e5 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #4f46e5;">
+            <div class="relative flex items-center justify-center">
+                <button type="button" onclick="toggleReportsAdministrativeColumnMenu(event, '${col.key}')" class="reports-admin-column-toggle-btn w-full inline-flex items-center justify-center gap-2 text-white font-semibold" style="min-height: 36px;">
+                    <i class="${col.icon} text-sm"></i>
+                    <span>${col.label}</span>
+                    <i class="ri-arrow-down-s-line text-sm opacity-90"></i>
+                </button>
+                ${__buildReportsAdministrativeColumnMenuHTML(col.key)}
+            </div>
+        </th>
+    `).join('');
+
+    if (administrative.length > initialBatchSize) {
+        let currentIndex = initialBatchSize;
+        const appendNextChunk = () => {
+            const tbody = document.getElementById('administrative-table-body');
+            if (!tbody) return;
+            const end = Math.min(currentIndex + 100, administrative.length);
+            let chunkHtml = '';
+            for (let i = currentIndex; i < end; i++) {
+                chunkHtml += buildRowHtml(administrative[i], i);
+            }
+            tbody.insertAdjacentHTML('beforeend', chunkHtml);
+            currentIndex = end;
+            if (currentIndex < administrative.length) {
+                __reportsAdministrativeChunkTimer = requestAnimationFrame(appendNextChunk);
+            } else {
+                __reportsAdministrativeChunkTimer = null;
+            }
+        };
+        __reportsAdministrativeChunkTimer = requestAnimationFrame(appendNextChunk);
+    }
+
+    return `
+        <div class="administrative-report-container flex-1 min-h-0 flex flex-col p-0" style="height: 100%; position: relative;">
+            <div id="admin-stats-collapse-container" class="${__reportsAdministrativeStatsExpanded ? '' : 'hidden'} p-2 border-b border-gray-100 bg-gray-50/50 transition-all duration-300 shrink-0">
+                ${statsGridHtml}
+            </div>
+            <div class="bg-white rounded-2xl shadow-xl border border-gray-100 flex-1 min-h-0 overflow-auto" style="-webkit-overflow-scrolling: touch; touch-action: pan-x pan-y; overscroll-behavior: contain;">
+                <table class="w-full border-separate" style="border-spacing: 0; table-layout: fixed; min-width: ${visibleColumns.length * 150}px;">
                     <thead style="position: sticky; top: 0; z-index: 20;">
                         <tr class="text-white shadow-lg" style="background-color: #6366f1 !important;">
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #6366f1 !important; color: white !important; border-color: #4f46e5 !important; white-space: nowrap; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #4f46e5;">
-                                <div class="flex items-center justify-center gap-2">
-                                    <i class="ri-task-line text-sm"></i>
-                                    <span>المهمة</span>
-                                </div>
-                            </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #6366f1 !important; color: white !important; border-color: #4f46e5 !important; white-space: nowrap; width: 140px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem; border-left: 2px solid #4f46e5;">
-                                <div class="flex items-center justify-center gap-2">
-                                    <i class="ri-checkbox-circle-line text-sm"></i>
-                                    <span>الحالة</span>
-                                </div>
-                            </th>
-                            <th style="position: sticky; top: 0; z-index: 20; background-color: #6366f1 !important; color: white !important; white-space: nowrap; width: 160px; padding: 0.5rem 0.75rem; text-align: center; font-weight: 600; font-size: 0.875rem;">
-                                <div class="flex items-center justify-center gap-2">
-                                    <i class="ri-calendar-line text-sm"></i>
-                                    <span>تاريخ الإنجاز</span>
-                                </div>
-                            </th>
+                            ${headerHtml}
                         </tr>
                     </thead>
                     <tbody id="administrative-table-body">
-                        ${tableRows}
+                        ${initialRows}
                     </tbody>
                 </table>
             </div>
@@ -396,225 +915,250 @@ function generateAdministrativeReportHTML(administrative, clients, sortOrder = '
     `;
 }
 
-
-let currentAdministrativeSortOrder = 'desc';
-let currentAdministrativeStatusFilter = 'all';
-
-
-async function toggleAdministrativeSort() {
+// -------------------------------------------------------------
+// التحكم في الفرز والفلترة من القوائم العلوية
+// -------------------------------------------------------------
+function __reportsAdministrativeUpdateActiveTiles() {
     try {
+        const timeButtons = document.querySelectorAll('#admin-view-menu [data-time-mode]');
+        timeButtons.forEach(btn => {
+            const mode = btn.getAttribute('data-time-mode');
+            const isActive = (mode === __reportsAdministrativeTimeFilterMode) ||
+                (mode === 'current-week' && __reportsAdministrativeTimeFilterMode === 'week') ||
+                (mode === 'week' && __reportsAdministrativeTimeFilterMode === 'current-week');
+            if (isActive) {
+                btn.style.backgroundColor = '#dbeafe';
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#1d4ed8';
+                btn.style.fontWeight = 'bold';
+            } else {
+                btn.style.backgroundColor = '#ffffff';
+                btn.style.borderColor = '#cbd5e1';
+                btn.style.color = '#334155';
+                btn.style.fontWeight = 'normal';
+            }
+        });
 
-        currentAdministrativeSortOrder = currentAdministrativeSortOrder === 'desc' ? 'asc' : 'desc';
-
-
-        const { administrative, clients } = __getReportsAdministrativeDataForAction();
-
-
-        const sortButton = document.querySelector('button[onclick="toggleAdministrativeSort()"]');
-        const icon = sortButton.querySelector('i');
-        const text = sortButton.querySelector('span');
-
-        icon.className = currentAdministrativeSortOrder === 'desc' ? 'ri-time-line' : 'ri-history-line';
-        text.textContent = currentAdministrativeSortOrder === 'desc' ? 'الأحدث' : 'الأقدم';
-
-
-        const reportContent = document.getElementById('administrative-report-content');
-        reportContent.innerHTML = generateAdministrativeReportHTML(administrative, clients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter);
-
-    } catch (error) {
-        console.error('Error sorting administrative report:', error);
-        showToast('حدث خطأ أثناء فرز التقرير', 'error');
-    }
+        const sortButtons = document.querySelectorAll('#admin-view-menu [data-sort-mode]');
+        sortButtons.forEach(btn => {
+            const mode = btn.getAttribute('data-sort-mode');
+            if (mode === currentAdministrativeSortOrder) {
+                btn.style.backgroundColor = '#dbeafe';
+                btn.style.borderColor = '#3b82f6';
+                btn.style.color = '#1d4ed8';
+                btn.style.fontWeight = 'bold';
+            } else {
+                btn.style.backgroundColor = '#ffffff';
+                btn.style.borderColor = '#cbd5e1';
+                btn.style.color = '#334155';
+                btn.style.fontWeight = 'normal';
+            }
+        });
+    } catch (_) { }
 }
 
+function toggleAdminViewMenu() {
+    try {
+        const menu = document.getElementById('admin-view-menu');
+        if (!menu) return;
+        const isHidden = menu.classList.contains('hidden');
+        if (isHidden) {
+            __reportsAdministrativeUpdateActiveTiles();
+            menu.classList.remove('hidden');
+        } else {
+            menu.classList.add('hidden');
+        }
+    } catch (_) { }
+}
+
+function setAdminTimeFilterMode(mode) {
+    const m = String(mode || '').trim();
+    __reportsAdministrativeTimeFilterMode = (m === 'today' || m === 'tomorrow' || m === 'week' || m === 'current-week' || m === 'month') ? m : 'all';
+    __updateAdminViewMenuButtonLabel();
+    __reportsAdministrativeUpdateActiveTiles();
+    __reportsAdministrativeApplyFiltersAndRender();
+    const menu = document.getElementById('admin-view-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+function setAdminSortOrder(mode) {
+    const m = String(mode || '').trim();
+    currentAdministrativeSortOrder = (m === 'asc') ? 'asc' : 'desc';
+    __updateAdminViewMenuButtonLabel();
+    __reportsAdministrativeUpdateActiveTiles();
+    __reportsAdministrativeApplyFiltersAndRender();
+    const menu = document.getElementById('admin-view-menu');
+    if (menu) menu.classList.add('hidden');
+}
+
+async function toggleAdministrativeSort() {
+    currentAdministrativeSortOrder = currentAdministrativeSortOrder === 'desc' ? 'asc' : 'desc';
+    __updateAdminViewMenuButtonLabel();
+    __reportsAdministrativeApplyFiltersAndRender();
+}
 
 function filterAdministrativeReport(searchTerm, administrative, clients) {
     __reportsAdministrativeLastSearchTerm = String(searchTerm || '');
-    if (!searchTerm.trim()) {
-
-        const reportContent = document.getElementById('administrative-report-content');
-        reportContent.innerHTML = generateAdministrativeReportHTML(administrative, clients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter);
-        __reportsAdministrativeCurrentData = Array.isArray(administrative) ? administrative : [];
-        __reportsAdministrativeCurrentClients = Array.isArray(clients) ? clients : [];
-        return;
-    }
-
-
-    const filteredAdministrative = administrative.filter(work => {
-        const client = work.clientId ? clients.find(c => c.id === work.clientId) : null;
-        const clientName = client ? client.name.toLowerCase() : 'عام';
-        const task = work.task ? work.task.toLowerCase() : '';
-        const description = work.description ? work.description.toLowerCase() : '';
-        const notes = work.notes ? work.notes.toLowerCase() : '';
-
-        const searchLower = searchTerm.toLowerCase();
-
-        return clientName.includes(searchLower) ||
-            task.includes(searchLower) ||
-            description.includes(searchLower) ||
-            notes.includes(searchLower);
-    });
-
-    __reportsAdministrativeCurrentData = filteredAdministrative;
-    __reportsAdministrativeCurrentClients = Array.isArray(clients) ? clients : [];
-    const reportContent = document.getElementById('administrative-report-content');
-    reportContent.innerHTML = generateAdministrativeReportHTML(filteredAdministrative, clients, currentAdministrativeSortOrder, currentAdministrativeStatusFilter);
+    __reportsAdministrativeApplyFiltersAndRender();
 }
-
 
 async function filterAdministrativeByStatus(status) {
-    try {
-
+    if (currentAdministrativeStatusFilter === status && status !== 'all') {
+        currentAdministrativeStatusFilter = 'all';
+    } else {
         currentAdministrativeStatusFilter = status;
-
-
-        const administrative = Array.isArray(__reportsAdministrativeAllData) ? __reportsAdministrativeAllData : [];
-        const clients = Array.isArray(__reportsAdministrativeAllClients) ? __reportsAdministrativeAllClients : [];
-
-
-        const res = __applyAdministrativeSearchAndStatus(administrative, clients, __reportsAdministrativeLastSearchTerm, status);
-        __reportsAdministrativeCurrentData = res.data;
-        __reportsAdministrativeCurrentClients = res.clients;
-
-
-        document.querySelectorAll('.administrative-stats-grid > div').forEach(card => {
-            const cardStatus = card.getAttribute('data-status');
-            if (cardStatus === status) {
-                card.style.borderWidth = '3px';
-                card.style.transform = 'scale(1.05)';
-            } else {
-                card.style.borderWidth = '2px';
-                card.style.transform = 'scale(1)';
-            }
-        });
-
-
-        const reportContent = document.getElementById('administrative-report-content');
-        reportContent.innerHTML = generateAdministrativeReportHTML(__reportsAdministrativeCurrentData, __reportsAdministrativeCurrentClients, currentAdministrativeSortOrder, status);
-
-    } catch (error) {
-        console.error('Error filtering administrative by status:', error);
-        showToast('حدث خطأ أثناء التصفية', 'error');
     }
+    __reportsAdministrativeApplyFiltersAndRender();
 }
 
+// -------------------------------------------------------------
+// جدول المستندات للطباعة والتصدير (Excel & PDF & Print)
+// -------------------------------------------------------------
+function __buildReportsAdministrativeDocumentTable(administrativeData, clientsData, options = {}) {
+    const visibleColumns = __getReportsAdministrativeVisibleColumns();
+    const colCount = visibleColumns.length;
+    const isPdfExport = options.isPdfExport === true;
 
+    // تحديد مقاس الخط والحواشي ديناميكياً وفقاً لعدد الأعمدة ليتناسب حجم النص مع حجم الخلية
+    let defaultHeaderFontSize = '12px';
+    let defaultCellFontSize = '11px';
+    let defaultHeaderPadding = '6px 6px';
+    let defaultCellPadding = '5px 5px';
+
+    if (isPdfExport) {
+        if (colCount >= 7) {
+            defaultHeaderFontSize = '7.5px';
+            defaultCellFontSize = '7px';
+            defaultHeaderPadding = '4px 2px';
+            defaultCellPadding = '3px 2px';
+        } else if (colCount === 6) {
+            defaultHeaderFontSize = '8.5px';
+            defaultCellFontSize = '8px';
+            defaultHeaderPadding = '4px 3px';
+            defaultCellPadding = '4px 3px';
+        } else {
+            defaultHeaderFontSize = '9.5px';
+            defaultCellFontSize = '8.5px';
+            defaultHeaderPadding = '5px 4px';
+            defaultCellPadding = '4px 3px';
+        }
+    }
+
+    const headerFontSize = options.headerFontSize || defaultHeaderFontSize;
+    const cellFontSize = options.cellFontSize || defaultCellFontSize;
+    const headerPadding = options.headerPadding || defaultHeaderPadding;
+    const cellPadding = options.cellPadding || defaultCellPadding;
+    const tableStyle = options.tableStyle || 'width: 100%; border-collapse: collapse; margin-top: 8px; direction: rtl; table-layout: auto; box-sizing: border-box;';
+    const headerCellStyle = `background-color: #6366f1; color: white; padding: ${headerPadding}; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: ${headerFontSize}; white-space: nowrap; box-sizing: border-box;`;
+
+    const clientsList = Array.isArray(clientsData) ? clientsData : [];
+    const clientMaps = {
+        byId: new Map(clientsList.map(c => [c.id, c])),
+        byName: new Map()
+    };
+    clientsList.forEach(c => {
+        if (c && c.name) clientMaps.byName.set(String(c.name).trim(), c);
+    });
+
+    const rowsHtml = (Array.isArray(administrativeData) ? administrativeData : []).map((work, index) => {
+        const rowData = __getReportsAdministrativeRowData(work, clientMaps);
+        const rowBg = index % 2 === 0 ? '#f5f3ff' : '#ffffff';
+
+        const cellsHtml = visibleColumns.map(col => {
+            let val = rowData[col.key];
+            if (isPdfExport && val) {
+                val = String(val).replace(/\s*\/\s*/g, ' - ');
+            }
+            const escaped = __escapeReportsAdministrativeHtml(val);
+
+            // تخصيص حجم النص وخصائص العرض بدقة حسب طبيعة الخلية
+            let specificCellFontSize = cellFontSize;
+            let extraCellStyle = '';
+
+            const isPhoneCol = col.key === 'clientPhone';
+            const isDateCol = col.key === 'dueDate' || col.key === 'status';
+
+            if (isPhoneCol) {
+                if (colCount >= 6) {
+                    specificCellFontSize = (parseFloat(cellFontSize) * 0.95).toFixed(1) + 'px';
+                }
+                extraCellStyle = 'white-space: nowrap; direction: ltr; unicode-bidi: embed; letter-spacing: -0.3px;';
+            } else if (isDateCol) {
+                extraCellStyle = 'white-space: nowrap;';
+            } else {
+                extraCellStyle = 'word-break: break-word; line-height: 1.15;';
+            }
+
+            if (col.key === 'status') {
+                const color = rowData.isCompleted ? '#16a34a' : (rowData.isOverdue ? '#dc2626' : '#d97706');
+                return `<td style="border: 1px solid #cbd5e1; padding: ${cellPadding}; text-align: center; font-size: ${specificCellFontSize}; ${extraCellStyle} color: ${color}; font-weight: bold; box-sizing: border-box; overflow: hidden;">${escaped}</td>`;
+            }
+
+            return `<td style="border: 1px solid #cbd5e1; padding: ${cellPadding}; text-align: center; font-size: ${specificCellFontSize}; ${extraCellStyle} box-sizing: border-box; overflow: hidden;">${escaped}</td>`;
+        }).join('');
+
+        return `<tr style="background: ${rowBg};">${cellsHtml}</tr>`;
+    }).join('');
+
+    const headerHtml = visibleColumns.map(col => `<th style="${headerCellStyle}">${col.label}</th>`).join('');
+
+    return `
+        <table style="${tableStyle}">
+            <thead>
+                <tr>${headerHtml}</tr>
+            </thead>
+            <tbody>
+                ${rowsHtml}
+            </tbody>
+        </table>
+    `;
+}
+
+// -------------------------------------------------------------
+// الطباعة (Print)
+// -------------------------------------------------------------
 async function printAdministrativeReport() {
     try {
-
-        const { administrative } = __getReportsAdministrativeDataForAction();
-
-
-        let administrativeData = [...administrative];
-        if (currentAdministrativeStatusFilter === 'completed') {
-            administrativeData = administrativeData.filter(work => work.completed === true);
-        } else if (currentAdministrativeStatusFilter === 'pending') {
-            administrativeData = administrativeData.filter(work => work.completed === false);
-        } else if (currentAdministrativeStatusFilter === 'overdue') {
-            administrativeData = administrativeData.filter(work => {
-                if (work.completed || !work.dueDate) return false;
-                const today = new Date();
-                const due = new Date(work.dueDate);
-                return due < today;
-            });
+        await __getReportsAdministrativeDateLocaleSetting();
+        const { administrative, clients } = __getReportsAdministrativeDataForAction();
+        if (!administrative.length) {
+            if (typeof showToast === 'function') showToast('لا توجد بيانات مطابقة للطباعة', 'info');
+            return;
         }
-
-
-        administrativeData.sort((a, b) => {
-            const dateA = new Date(a.dueDate || a.createdAt);
-            const dateB = new Date(b.dueDate || b.createdAt);
-
-            if (currentAdministrativeSortOrder === 'desc') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
-        });
-
-
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
-
-
-        let tableRows = '';
-        administrativeData.forEach((work, i) => {
-            const parts = [work.description, work.notes].filter(s => s && s.trim());
-            const fullTaskText = parts.join(' - ');
-
-            const dueDate = __formatReportsAdministrativeDateForDisplay(work.dueDate);
-            const statusText = work.completed ? 'مكتمل ✓' : 'قيد التنفيذ';
-            const statusColor = work.completed ? '#16a34a' : '#f59e0b';
-            const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
-
-            tableRows += `
-                <tr style="background: ${rowBg};">
-                    <td style="border: 1px solid #ddd; padding: 6px 6px; text-align: center; font-size: 16px;">${fullTaskText}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px 6px; text-align: center; color: ${statusColor}; font-weight: bold; width: 100px; font-size: 16px;">${statusText}</td>
-                    <td style="border: 1px solid #ddd; padding: 6px 6px; text-align: center; font-size: 16px; width: 110px;">${dueDate}</td>
-                </tr>
-            `;
-        });
-
 
         const printHTML = `
             <div style="font-family: Arial, sans-serif; direction: rtl; padding: 12px;">
-                <!-- Header بالتاريخ والوقت -->
                 <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 6px 10px; border-bottom: 2px solid #cbd5e1; margin-bottom: 15px;">
-                    <div style="color: #1e40af; font-size: 14px; font-weight: bold; text-align: right;">تقرير الأعمال الإدارية</div>
+                    <div style="color: #4338ca; font-size: 14px; font-weight: bold; text-align: right;">تقرير المهام</div>
                     <div style="color: #666; font-size: 14px; text-align: center;">${new Date().toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG')} | ${new Date().toLocaleTimeString(__reportsAdministrativeDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' })}</div>
                     <div style="color: #666; font-size: 14px; text-align: left;">${officeName}</div>
                 </div>
-                
-                <table style="width: 100%; border-collapse: collapse; margin-top: 8px;">
-                    <thead>
-                        <tr>
-                            <th style="background-color: #6366f1; color: white; padding: 8px 6px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 18px;">المهمة</th>
-                            <th style="background-color: #6366f1; color: white; padding: 8px 6px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 18px; width: 100px;">الحالة</th>
-                            <th style="background-color: #6366f1; color: white; padding: 8px 6px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 18px; width: 110px;">تاريخ الاستحقاق</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${tableRows}
-                    </tbody>
-                </table>
+                ${__buildReportsAdministrativeDocumentTable(administrative, clients, { headerFontSize: '13px', cellFontSize: '12px', headerPadding: '6px 6px', cellPadding: '6px 6px' })}
             </div>
         `;
 
         const printWindow = window.open('', '_blank');
-
         printWindow.document.write(`
             <!DOCTYPE html>
             <html dir="rtl" lang="ar">
             <head>
                 <meta charset="UTF-8">
-                <title>تقرير الأعمال الإدارية - ${new Date().toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG')}</title>
+                <title>تقرير المهام - ${new Date().toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG')}</title>
                 <style>
-                    @page {
-                        size: A4;
-                        margin: 10mm;
-                    }
-                    
-                    * {
-                        -webkit-print-color-adjust: exact !important;
-                        print-color-adjust: exact !important;
-                    }
-                    
-                    body {
-                        font-family: Arial, sans-serif;
-                        direction: rtl;
-                        margin: 0;
-                        padding: 0;
-                    }
+                    @page { size: A4 portrait; margin: 10mm; }
+                    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
+                    body { font-family: Arial, sans-serif; direction: rtl; margin: 0; padding: 0; }
+                    thead { display: table-header-group; }
+                    tr { page-break-inside: auto; }
                 </style>
             </head>
-            <body>
-                ${printHTML}
-            </body>
+            <body>${printHTML}</body>
             </html>
         `);
 
         printWindow.document.close();
         printWindow.focus();
-
         setTimeout(() => {
             printWindow.print();
             printWindow.close();
@@ -626,37 +1170,31 @@ async function printAdministrativeReport() {
     }
 }
 
+// -------------------------------------------------------------
+// تصدير إكسيل (Excel Export)
+// -------------------------------------------------------------
 async function exportAdministrativeReport() {
     try {
+        if (window.electronAPI && typeof window.electronAPI.checkClientsPathOnDesktop === 'function') {
+            const chk = await window.electronAPI.checkClientsPathOnDesktop();
+            if (chk && chk.success === true && chk.isOnDesktop === true) {
+                try {
+                    if (typeof window.showDesktopPathSafetyWarning === 'function') {
+                        window.showDesktopPathSafetyWarning(
+                            { path: chk.path, desktop: chk.desktop },
+                            { onContinue: null }
+                        );
+                    }
+                } catch (_) { }
+                toggleExportMenuAdmin();
+                return;
+            }
+        }
+
         await __getReportsAdministrativeDateLocaleSetting();
         const { administrative, clients } = __getReportsAdministrativeDataForAction();
 
-        let filteredAdministrative = administrative;
-        if (currentAdministrativeStatusFilter === 'completed') {
-            filteredAdministrative = administrative.filter(work => work.completed === true);
-        } else if (currentAdministrativeStatusFilter === 'pending') {
-            filteredAdministrative = administrative.filter(work => work.completed === false);
-        } else if (currentAdministrativeStatusFilter === 'overdue') {
-            filteredAdministrative = administrative.filter(work => {
-                if (work.completed || !work.dueDate) return false;
-                const today = new Date();
-                const due = new Date(work.dueDate);
-                return due < today;
-            });
-        }
-
-        filteredAdministrative.sort((a, b) => {
-            const dateA = new Date(a.dueDate || a.createdAt);
-            const dateB = new Date(b.dueDate || b.createdAt);
-
-            if (currentAdministrativeSortOrder === 'desc') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
-        });
-
-        let excelContent = `
+        const excelContent = `
             <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:x="urn:schemas-microsoft-com:office:excel" xmlns="http://www.w3.org/TR/REC-html40">
             <head>
                 <meta charset="UTF-8">
@@ -667,7 +1205,7 @@ async function exportAdministrativeReport() {
                     <x:ExcelWorkbook>
                         <x:ExcelWorksheets>
                             <x:ExcelWorksheet>
-                                <x:Name>تقرير الأعمال الإدارية</x:Name>
+                                <x:Name>المهام</x:Name>
                                 <x:WorksheetOptions>
                                     <x:DisplayGridlines/>
                                     <x:Print>
@@ -680,82 +1218,18 @@ async function exportAdministrativeReport() {
                     </x:ExcelWorkbook>
                 </xml>
                 <![endif]-->
-                <style>
-                    table {
-                        border-collapse: collapse;
-                        direction: rtl;
-                        font-family: Arial, sans-serif;
-                        font-size: 18px;
-                        mso-table-lspace: 0pt;
-                        mso-table-rspace: 0pt;
-                    }
-                    th {
-                        background: #6366f1;
-                        background-color: #6366f1;
-                        color: #FFFFFF;
-                        border: 2px solid #4f46e5;
-                        padding: 10px;
-                        text-align: center;
-                        font-weight: bold;
-                        font-size: 21px;
-                        width: auto;
-                        mso-background-source: auto;
-                    }
-                    td {
-                        border: 1px solid #cccccc;
-                        padding: 8px;
-                        text-align: center;
-                        vertical-align: middle;
-                        width: auto;
-                        background: #FFFFFF;
-                        background-color: #FFFFFF;
-                    }
-                    .empty-cell {
-                        color: #999999;
-                        font-style: italic;
-                        text-align: center;
-                        background: #F8F8F8;
-                        background-color: #F8F8F8;
-                    }
-                </style>
             </head>
             <body>
-                <table>
-                                    <tr>
-                                        <th style="background-color: #6366f1; color: #FFFFFF; border: 2px solid #4f46e5; padding: 10px; text-align: center; font-weight: bold; font-size: 21px;">المهمة</th>
-                                        <th style="background-color: #6366f1; color: #FFFFFF; border: 2px solid #4f46e5; padding: 10px; text-align: center; font-weight: bold; font-size: 21px;">الحالة</th>
-                                        <th style="background-color: #6366f1; color: #FFFFFF; border: 2px solid #4f46e5; padding: 10px; text-align: center; font-weight: bold; font-size: 21px;">تاريخ الإنجاز</th>
-                                    </tr>
-        `;
-
-        filteredAdministrative.forEach((work) => {
-            const parts = [work.description, work.notes].filter(s => s && String(s).trim());
-            const fullTaskText = parts.length ? parts.join(' - ') : (work.task || '-');
-            const status = work.completed ? 'مكتمل' : 'قيد التنفيذ';
-            const dueDate = __formatReportsAdministrativeDateForDisplay(work.dueDate);
-
-            excelContent += `
-                <tr>
-                    <td style="border: 1px solid #cccccc; padding: 8px; text-align: center; background-color: #FFFFFF; font-size: 18px;">${fullTaskText}</td>
-                    <td style="border: 1px solid #cccccc; padding: 8px; text-align: center; background-color: #FFFFFF; font-size: 18px;">${status}</td>
-                    <td style="border: 1px solid #cccccc; padding: 8px; text-align: center; background-color: #FFFFFF; font-size: 18px;">${dueDate}</td>
-                </tr>
-            `;
-        });
-
-        excelContent += `
-                </table>
+                ${__buildReportsAdministrativeDocumentTable(administrative, clients, { headerFontSize: '21px', cellFontSize: '18px', headerPadding: '10px', cellPadding: '8px', tableStyle: 'border-collapse: collapse; direction: rtl; font-family: Arial, sans-serif; font-size: 18px; mso-table-lspace: 0pt; mso-table-rspace: 0pt;' })}
             </body>
             </html>
         `;
 
-        const blob = new Blob([excelContent], {
-            type: 'application/vnd.ms-excel;charset=utf-8;'
-        });
+        const blob = new Blob([excelContent], { type: 'application/vnd.ms-excel;charset=utf-8;' });
         const link = document.createElement('a');
         const url = URL.createObjectURL(blob);
         link.setAttribute('href', url);
-        link.setAttribute('download', `تقرير_الأعمال_الإدارية_${new Date().toISOString().split('T')[0]}.xls`);
+        link.setAttribute('download', `تقرير_المهام_${new Date().toISOString().split('T')[0]}.xls`);
         link.style.visibility = 'hidden';
         document.body.appendChild(link);
         link.click();
@@ -770,160 +1244,51 @@ async function exportAdministrativeReport() {
     }
 }
 
-function __escapeReportsAdministrativeHtml(value) {
-    const str = value === null || value === undefined ? '' : String(value);
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;');
+async function exportAdministrativeReportExcel() {
+    return await exportAdministrativeReport();
 }
 
-function __createReportsAdministrativePdfElement({ officeName, tableRows, totalWorks, completedWorks, pendingWorks, overdueWorks }) {
-    const element = document.createElement('div');
-    element.style.direction = 'rtl';
-    element.style.position = 'fixed';
-    element.style.left = '-10000px';
-    element.style.top = '0';
-    element.style.width = '210mm';
-    element.style.background = '#ffffff';
-
-    element.innerHTML = `
-        <div style="font-family: Tahoma, Arial, sans-serif; direction: rtl; padding: 8px; unicode-bidi: plaintext;">
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px;">
-                <tr>
-                    <td style="width: 33%; color: #1e40af; font-size: 10px; font-weight: bold; text-align: right;">تقرير الأعمال الإدارية</td>
-                    <td style="width: 34%; color: #666; font-size: 7px; text-align: center;">${new Date().toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG')} | ${new Date().toLocaleTimeString(__reportsAdministrativeDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' })}</td>
-                    <td style="width: 33%; color: #666; font-size: 7px; text-align: left;">${__escapeReportsAdministrativeHtml(officeName)}</td>
-                </tr>
-            </table>
-
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 8px; background: #f8fafc; border: 1px solid #6366f1; border-radius: 3px;">
-                <tr>
-                    <td style="width: 25%; text-align: center; padding: 4px;">
-                        <div style="color: #666; font-size: 7px;">الأعمال</div>
-                        <div style="color: #6366f1; font-size: 9px; font-weight: bold;">${totalWorks}</div>
-                    </td>
-                    <td style="width: 25%; text-align: center; padding: 4px;">
-                        <div style="color: #666; font-size: 7px;">مكتمل</div>
-                        <div style="color: #6366f1; font-size: 9px; font-weight: bold;">${completedWorks}</div>
-                    </td>
-                    <td style="width: 25%; text-align: center; padding: 4px;">
-                        <div style="color: #666; font-size: 7px;">تنفيذ</div>
-                        <div style="color: #6366f1; font-size: 9px; font-weight: bold;">${pendingWorks}</div>
-                    </td>
-                    <td style="width: 25%; text-align: center; padding: 4px;">
-                        <div style="color: #666; font-size: 7px;">متأخر</div>
-                        <div style="color: #6366f1; font-size: 9px; font-weight: bold;">${overdueWorks}</div>
-                    </td>
-                </tr>
-            </table>
-
-            <table style="width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 4px;">
-                <colgroup>
-                    <col />
-                    <col style="width: 100px;" />
-                    <col style="width: 110px;" />
-                </colgroup>
-                <thead>
-                    <tr>
-                        <th style="background-color: #6366f1; color: white; padding: 5px 4px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 9px;">المهمة</th>
-                        <th style="background-color: #6366f1; color: white; padding: 5px 4px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 9px;">الحالة</th>
-                        <th style="background-color: #6366f1; color: white; padding: 5px 4px; text-align: center; border: 1px solid #4f46e5; font-weight: bold; font-size: 9px;">تاريخ الإنجاز</th>
-                    </tr>
-                </thead>
-                <tbody>${tableRows}</tbody>
-            </table>
-        </div>
-    `;
-
-    document.body.appendChild(element);
-    return element;
-}
-
+// -------------------------------------------------------------
+// تصدير PDF و WhatsApp
+// -------------------------------------------------------------
 async function exportAdministrativeReportPDF() {
     try {
-        await __getReportsAdministrativeDateLocaleSetting();
-        const { administrative } = __getReportsAdministrativeDataForAction();
-
-        let administrativeData = [...administrative];
-        if (currentAdministrativeStatusFilter === 'completed') {
-            administrativeData = administrativeData.filter(work => work.completed === true);
-        } else if (currentAdministrativeStatusFilter === 'pending') {
-            administrativeData = administrativeData.filter(work => work.completed === false);
-        } else if (currentAdministrativeStatusFilter === 'overdue') {
-            administrativeData = administrativeData.filter(work => {
-                if (work.completed || !work.dueDate) return false;
-                const today = new Date();
-                const due = new Date(work.dueDate);
-                return due < today;
-            });
+        if (window.electronAPI && typeof window.electronAPI.checkClientsPathOnDesktop === 'function') {
+            const chk = await window.electronAPI.checkClientsPathOnDesktop();
+            if (chk && chk.success === true && chk.isOnDesktop === true) {
+                try {
+                    if (typeof window.showDesktopPathSafetyWarning === 'function') {
+                        window.showDesktopPathSafetyWarning(
+                            { path: chk.path, desktop: chk.desktop },
+                            { onContinue: null }
+                        );
+                    }
+                } catch (_) { }
+                toggleExportMenuAdmin();
+                return;
+            }
         }
 
-
-        administrativeData.sort((a, b) => {
-            const dateA = new Date(a.dueDate || a.createdAt);
-            const dateB = new Date(b.dueDate || b.createdAt);
-
-            if (currentAdministrativeSortOrder === 'desc') {
-                return dateB - dateA;
-            } else {
-                return dateA - dateB;
-            }
-        });
-
-
+        await __getReportsAdministrativeDateLocaleSetting();
+        const { administrative, clients } = __getReportsAdministrativeDataForAction();
+        if (!administrative.length) {
+            if (typeof showToast === 'function') showToast('لا توجد بيانات مطابقة للتصدير', 'info');
+            toggleExportMenuAdmin();
+            return;
+        }
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
 
-        let tableRows = '';
-        administrativeData.forEach((work, i) => {
-            const parts = [work.description, work.notes].filter(s => s && s.trim());
-            const fullTaskTextRaw = parts.length ? parts.join(' - ') : (work.task || '-');
-            const fullTaskText = __escapeReportsAdministrativeHtml(fullTaskTextRaw);
-
-            const dueDate = __formatReportsAdministrativeDateForDisplay(work.dueDate);
-            const statusText = work.completed ? 'مكتمل ✓' : 'قيد التنفيذ';
-            const statusColor = work.completed ? '#16a34a' : '#f59e0b';
-            const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
-
-            tableRows += `
-                <tr style="background: ${rowBg};">
-                    <td style="border: 1px solid #ddd; padding: 4px 6px; text-align: right; font-size: 8px; white-space: pre-wrap; word-break: break-word;">${fullTaskText}</td>
-                    <td style="border: 1px solid #ddd; padding: 4px 4px; text-align: center; color: ${statusColor}; font-weight: bold; width: 100px; font-size: 8px;">${statusText}</td>
-                    <td style="border: 1px solid #ddd; padding: 4px 4px; text-align: center; font-size: 8px; width: 110px;">${dueDate}</td>
-                </tr>
-            `;
-        });
-
-
-        const totalWorks = administrativeData.length;
-        const completedWorks = administrativeData.filter(work => work.completed === true).length;
-        const pendingWorks = administrativeData.filter(work => work.completed === false).length;
-        const overdueWorks = administrativeData.filter(work => {
-            if (work.completed || !work.dueDate) return false;
-            const today = new Date();
-            const due = new Date(work.dueDate);
-            return due < today;
-        }).length;
-
-        const element = __createReportsAdministrativePdfElement({ officeName, tableRows, totalWorks, completedWorks, pendingWorks, overdueWorks });
-
         const opt = {
-            margin: [8, 10, 8, 10],
-            filename: `تقرير_الأعمال_الإدارية_${new Date().toISOString().split('T')[0]}.pdf`,
+            margin: [8, 5, 8, 5],
+            filename: `تقرير_المهام_${new Date().toISOString().split('T')[0]}.pdf`,
             image: { type: 'jpeg', quality: 0.95 },
-            html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' },
-            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
         };
 
         showToast('جاري إنشاء ملف PDF...', 'info');
-        try {
-            await html2pdf().set(opt).from(element).save();
-        } finally {
-            try { if (element && element.parentNode) element.parentNode.removeChild(element); } catch (_) { }
-        }
+        const pdf = await __generateReportsAdministrativePDFDocument(administrative, clients, officeName, opt);
+        pdf.save(opt.filename);
         showToast('تم تصدير PDF بنجاح', 'success');
         toggleExportMenuAdmin();
 
@@ -936,51 +1301,110 @@ async function exportAdministrativeReportPDF() {
 async function exportAdministrativeReportWhatsApp() {
     try {
         await __getReportsAdministrativeDateLocaleSetting();
-        const { administrative } = __getReportsAdministrativeDataForAction();
-        let administrativeData = [...administrative];
-        if (currentAdministrativeStatusFilter === 'completed') administrativeData = administrativeData.filter(w => w.completed === true);
-        else if (currentAdministrativeStatusFilter === 'pending') administrativeData = administrativeData.filter(w => w.completed === false);
-        else if (currentAdministrativeStatusFilter === 'overdue') administrativeData = administrativeData.filter(w => { if (w.completed || !w.dueDate) return false; return new Date(w.dueDate) < new Date(); });
-        administrativeData.sort((a, b) => (currentAdministrativeSortOrder === 'desc' ? new Date(b.dueDate || b.createdAt) - new Date(a.dueDate || a.createdAt) : new Date(a.dueDate || a.createdAt) - new Date(b.dueDate || b.createdAt)));
+        const { administrative, clients } = __getReportsAdministrativeDataForAction();
+        if (!administrative.length) {
+            if (typeof showToast === 'function') showToast('لا توجد بيانات مطابقة للمشاركة', 'info');
+            toggleExportMenuAdmin();
+            return;
+        }
         let officeName = await (typeof getReportsOfficeName === 'function' ? getReportsOfficeName() : Promise.resolve('المحامى الرقمى'));
-        let tableRows = '';
-        administrativeData.forEach((work, i) => {
-            const parts = [work.description, work.notes].filter(s => s && s.trim());
-            const fullTaskTextRaw = parts.length ? parts.join(' - ') : (work.task || '-');
-            const fullTaskText = __escapeReportsAdministrativeHtml(fullTaskTextRaw);
-            const dueDate = __formatReportsAdministrativeDateForDisplay(work.dueDate);
-            const statusText = work.completed ? 'مكتمل ✓' : 'قيد التنفيذ';
-            const statusColor = work.completed ? '#16a34a' : '#f59e0b';
-            const rowBg = i % 2 === 0 ? '#f8fafc' : '#ffffff';
-            tableRows += `<tr style="background: ${rowBg};"><td style="border: 1px solid #ddd; padding: 4px 6px; text-align: right; font-size: 8px; white-space: pre-wrap; word-break: break-word;">${fullTaskText}</td><td style="border: 1px solid #ddd; padding: 4px 4px; text-align: center; color: ${statusColor}; font-weight: bold; width: 100px; font-size: 8px;">${statusText}</td><td style="border: 1px solid #ddd; padding: 4px 4px; text-align: center; font-size: 8px; width: 110px;">${dueDate}</td></tr>`;
-        });
-        const totalWorks = administrativeData.length;
-        const completedWorks = administrativeData.filter(w => w.completed === true).length;
-        const pendingWorks = administrativeData.filter(w => w.completed === false).length;
-        const overdueWorks = administrativeData.filter(w => { if (w.completed || !w.dueDate) return false; return new Date(w.dueDate) < new Date(); }).length;
-        const element = __createReportsAdministrativePdfElement({ officeName, tableRows, totalWorks, completedWorks, pendingWorks, overdueWorks });
-        const opt = { margin: [8, 10, 8, 10], filename: `تقرير_الأعمال_الإدارية_${new Date().toISOString().split('T')[0]}.pdf`, image: { type: 'jpeg', quality: 0.95 }, html2canvas: { scale: 2, useCORS: true, scrollX: 0, scrollY: 0, backgroundColor: '#ffffff' }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } };
+
+        const opt = {
+            margin: [8, 5, 8, 5],
+            filename: `تقرير_المهام_${new Date().toISOString().split('T')[0]}.pdf`,
+            image: { type: 'jpeg', quality: 0.95 },
+            html2canvas: { scale: 2, useCORS: true, letterRendering: true },
+            jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+
         showToast('جاري إنشاء التقرير للمشاركة...', 'info');
         toggleExportMenuAdmin();
-        let blob;
-        try {
-            blob = await html2pdf().set(opt).from(element).outputPdf('blob');
-        } finally {
-            try { if (element && element.parentNode) element.parentNode.removeChild(element); } catch (_) { }
+        const pdf = await __generateReportsAdministrativePDFDocument(administrative, clients, officeName, opt);
+        const blob = pdf.output('blob');
+
+        if (typeof shareReportPdfAsFile === 'function') {
+            await shareReportPdfAsFile(blob, opt.filename);
+        } else {
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = opt.filename;
+            a.click();
+            URL.revokeObjectURL(a.href);
+            window.open('https://wa.me/?text=' + encodeURIComponent('تقرير PDF مرفق'), '_blank');
+            showToast('تم تحميل التقرير. يمكنك إرفاقه في واتساب.', 'success');
         }
-        if (typeof shareReportPdfAsFile === 'function') await shareReportPdfAsFile(blob, opt.filename);
-        else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = opt.filename; a.click(); URL.revokeObjectURL(a.href); window.open('https://wa.me/?text=' + encodeURIComponent('تقرير PDF مرفق'), '_blank'); showToast('تم تحميل التقرير. يمكنك إرفاقه في واتساب.', 'success'); }
     } catch (error) {
         console.error('Error exporting report to WhatsApp:', error);
         showToast('حدث خطأ أثناء إعداد التقرير للمشاركة', 'error');
     }
 }
 
-async function exportAdministrativeReportExcel() {
-    return await exportAdministrativeReport();
+// -------------------------------------------------------------
+// توليد PDF متعدد الصفحات نظيف ومستقل لتقرير الأعمال الإدارية والمهام
+// -------------------------------------------------------------
+async function __generateReportsAdministrativePDFDocument(administrative, clients, officeName, opt) {
+    if (!administrative || administrative.length === 0) {
+        const emptyDiv = document.createElement('div');
+        emptyDiv.innerHTML = `<div style="text-align: center; padding: 20px;">لا توجد بيانات</div>`;
+        const worker = html2pdf().set(opt).from(emptyDiv);
+        await worker.toPdf();
+        return await worker.get('pdf');
+    }
+
+    const ROWS_PER_PAGE = 16;
+    const pages = [];
+    for (let i = 0; i < administrative.length; i += ROWS_PER_PAGE) {
+        pages.push(administrative.slice(i, i + ROWS_PER_PAGE));
+    }
+
+    const currentDate = new Date().toLocaleDateString(__reportsAdministrativeDateLocaleCache || 'ar-EG');
+    const currentTime = new Date().toLocaleTimeString(__reportsAdministrativeDateLocaleCache || 'ar-EG', { hour: '2-digit', minute: '2-digit' });
+    const totalPages = pages.length;
+
+    // بناء عناصر مستقلة لكل صفحة A4 برأسها المستقل الكامل في القمة
+    const pageElements = pages.map((pageAdmin, pageIdx) => {
+        const div = document.createElement('div');
+        div.style.direction = 'rtl';
+        div.style.boxSizing = 'border-box';
+        div.style.padding = '4px 6px';
+        div.style.fontFamily = "'Segoe UI', Tahoma, Arial, sans-serif";
+
+        const pageNumberLabel = totalPages > 1 ? `<span style="font-size: 9px; color: #64748b; font-weight: normal; margin-right: 6px;">${pageIdx + 1}</span>` : '';
+
+        div.innerHTML = `
+            <div style="display: grid; grid-template-columns: 1fr 1fr 1fr; align-items: center; padding: 4px 6px; border-bottom: 1px solid #cbd5e1; margin-bottom: 8px;">
+                <div style="color: #4338ca; font-size: 10px; font-weight: bold; text-align: right;">
+                    تقرير المهام ${pageNumberLabel}
+                </div>
+                <div style="color: #666; font-size: 7px; text-align: center;">${currentDate} | ${currentTime}</div>
+                <div style="color: #666; font-size: 7px; text-align: left;">${officeName}</div>
+            </div>
+            ${__buildReportsAdministrativeDocumentTable(pageAdmin, clients, { isPdfExport: true })}
+        `;
+        return div;
+    });
+
+    // رسم كل صفحة كـ Canvas مستقل وإضافته لـ jsPDF
+    const firstWorker = html2pdf().set(opt).from(pageElements[0]);
+    await firstWorker.toPdf();
+    const pdf = await firstWorker.get('pdf');
+    const pageSize = await firstWorker.get('pageSize');
+
+    for (let i = 1; i < pageElements.length; i++) {
+        const pageCanvas = await html2pdf().set(opt).from(pageElements[i]).toCanvas().get('canvas');
+        pdf.addPage();
+        const imgData = pageCanvas.toDataURL('image/' + (opt.image?.type || 'jpeg'), opt.image?.quality || 0.95);
+        const imgWidth = pageSize.inner.width;
+        const imgHeight = pageCanvas.height * imgWidth / pageCanvas.width;
+        pdf.addImage(imgData, (opt.image?.type || 'jpeg').toUpperCase(), opt.margin[1], opt.margin[0], imgWidth, imgHeight);
+    }
+
+    return pdf;
 }
 
-
+// -------------------------------------------------------------
+// إدارة قائمة التصدير
+// -------------------------------------------------------------
 async function toggleExportMenuAdmin() {
     const openMenu = () => {
         const menu = document.getElementById('export-menu-admin');
@@ -1011,12 +1435,42 @@ async function toggleExportMenuAdmin() {
     openMenu();
 }
 
-
+// مستمع النقر العام لإغلاق القوائم المنسدلة عند النقر بالخارج (مطابق لـ reports-cases.js)
 document.addEventListener('click', function (event) {
     const menu = document.getElementById('export-menu-admin');
     const button = document.getElementById('export-btn-admin');
+    const viewMenu = document.getElementById('admin-view-menu');
+    const viewBtn = document.getElementById('admin-view-menu-btn');
+    const target = event.target;
+    const clickedInsideColumnMenu = target && typeof target.closest === 'function' ? target.closest('[id^="reports-admin-column-menu-"]') : null;
+    const clickedColumnToggle = target && typeof target.closest === 'function' ? target.closest('.reports-admin-column-toggle-btn') : null;
+    const clickedInsideViewMenu = target && typeof target.closest === 'function' ? target.closest('#admin-view-menu') : null;
 
-    if (menu && button && !menu.contains(event.target) && !button.contains(event.target)) {
+    if (menu && button && !menu.contains(target) && !button.contains(target)) {
         menu.classList.add('hidden');
     }
+
+    if (viewMenu && viewBtn && !clickedInsideViewMenu && !viewBtn.contains(target)) {
+        viewMenu.classList.add('hidden');
+    }
+
+    if (!clickedInsideColumnMenu && !clickedColumnToggle) {
+        closeReportsAdministrativeColumnMenus();
+    }
+});
+
+// إغلاق القوائم عند الضغط على Escape
+document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') {
+        closeReportsAdministrativeColumnMenus();
+        const menu = document.getElementById('export-menu-admin');
+        if (menu) menu.classList.add('hidden');
+        const viewMenu = document.getElementById('admin-view-menu');
+        if (viewMenu) viewMenu.classList.add('hidden');
+    }
+});
+
+// إغلاق القوائم عند تغيير أبعاد الشاشة لمنع التموضع الخاطئ
+window.addEventListener('resize', function () {
+    closeReportsAdministrativeColumnMenus();
 });

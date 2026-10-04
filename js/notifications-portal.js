@@ -56,7 +56,7 @@ window.USE_NOTIFICATIONS_PORTAL = true;
         <span style="font-size:13px;font-weight:700">الإشعارات</span>
         <button id="portal-toggle-mute-btn" style="font-size:12px;padding:4px 8px;border:1px solid #d1d5db;border-radius:9999px;background:#fff;">كتم</button>
       </div>
-      <div id="portal-popover-list" style="max-height:320px; overflow:auto; padding:8px; font-size:14px;"></div>
+      <div id="portal-popover-list" style="max-height:380px; overflow-y:auto; padding:8px; font-size:14px;"></div>
     `;
     document.body.appendChild(pop);
 
@@ -127,7 +127,7 @@ window.USE_NOTIFICATIONS_PORTAL = true;
               header.innerHTML = '<span class="material-symbols-outlined" style="color:#4b5563;font-size:18px;">notifications</span>' +
                                  `<span style="font-weight:700;">${it.title}</span>`;
               block.appendChild(header);
-              it.lines.slice(0,3).forEach(line => {
+              it.lines.forEach(line => {
                 const row = document.createElement('div');
                 row.style.cssText = 'padding:4px 8px;color:#374151;';
                 row.textContent = (typeof line === 'string') ? line : (line && typeof line === 'object' ? (line.text || '') : '');
@@ -148,12 +148,12 @@ window.USE_NOTIFICATIONS_PORTAL = true;
           tomorrowAdminList,
           allCases
         ] = await Promise.all([
-          getTodaySessions(3),
-          getTomorrowSessions(3),
-          getTodayExpertSessions(3),
-          getTomorrowExpertSessions(3),
-          getTodayAdministrative(3),
-          getTomorrowAdministrative(3),
+          getTodaySessions(),
+          getTomorrowSessions(),
+          getTodayExpertSessions(),
+          getTomorrowExpertSessions(),
+          getTodayAdministrative(),
+          getTomorrowAdministrative(),
           getAllCases()
         ]);
         const casesMap = new Map(Array.isArray(allCases) ? allCases.map(c => [c.id, c]) : []);
@@ -245,7 +245,7 @@ window.USE_NOTIFICATIONS_PORTAL = true;
           header.innerHTML = '<span class="material-symbols-outlined" style="color:#4b5563;font-size:18px;">notifications</span>' +
                              `<span style="font-weight:700;">${it.title}</span>`;
           block.appendChild(header);
-          it.lines.slice(0, 3).forEach(lineItem => {
+          it.lines.forEach(lineItem => {
             const row = document.createElement('div');
             row.style.cssText = 'padding:4px 8px;color:#374151;display:flex;align-items:center;justify-content:space-between;gap:8px;';
             
@@ -264,7 +264,7 @@ window.USE_NOTIFICATIONS_PORTAL = true;
                 btn.onmouseover = () => btn.style.background = '#eff6ff';
                 btn.onmouseout = () => btn.style.background = 'transparent';
                 
-                btn.onclick = (e) => {
+                btn.onclick = async (e) => {
                     e.stopPropagation();
                     // Close portal
                     if(typeof hidePopover === 'function') hidePopover(); else { try{ document.getElementById('notifications-portal-popover').style.display='none'; }catch(e){} }
@@ -275,8 +275,16 @@ window.USE_NOTIFICATIONS_PORTAL = true;
                     const day = lineItem.day;
                     
                     if (type === 'session') {
+                        if (typeof guardFeatureAccess === 'function') {
+                            const ok = await guardFeatureAccess('sessions', 'الجلسات');
+                            if (!ok) return;
+                        }
                         window.location.href = `case-info.html?sessionId=${encodeURIComponent(String(id || ''))}`;
                     } else if (type === 'expert') {
+                        if (typeof guardFeatureAccess === 'function') {
+                            const ok = await guardFeatureAccess('expert-sessions', 'جلسات الخبراء');
+                            if (!ok) return;
+                        }
                          try {
                              if (day === 'today' || day === 'tomorrow') {
                                  sessionStorage.setItem('expert_sessions_open_filter', day);
@@ -286,6 +294,10 @@ window.USE_NOTIFICATIONS_PORTAL = true;
                          } catch (_) { }
                          window.location.href = `expert-sessions.html?filter=${encodeURIComponent(String(day || 'tomorrow'))}`;
                     } else if (type === 'admin') {
+                        if (typeof guardFeatureAccess === 'function') {
+                            const ok = await guardFeatureAccess('administrative', 'المهام');
+                            if (!ok) return;
+                        }
                          window.location.href = `administrative.html?filter=${encodeURIComponent(String(day || 'tomorrow'))}`;
                     }
                 };

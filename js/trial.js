@@ -562,7 +562,7 @@
         try {
             if (typeof window !== 'undefined' && window.APP_CURRENT_VERSION) return String(window.APP_CURRENT_VERSION);
         } catch (_) { }
-    return '4.0.7';
+        return '5.0.0';
     }
 
     /** إزالة رقم إصدار المتصفح (مثل 140 / كروميوم) من اسم الجهاز */

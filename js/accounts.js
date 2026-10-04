@@ -720,7 +720,7 @@ function displayAccountsModal() {
             backBtn.parentNode.replaceChild(newBackBtn, backBtn);
 
             newBackBtn.addEventListener('click', function () {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             });
         }
     }, 100);
@@ -1421,8 +1421,20 @@ function toggleClientDetails(clientId) {
 }
 
 
+if (typeof window !== 'undefined' && !window.normalizeDigits) {
+    window.normalizeDigits = function(str) {
+        if (!str) return '';
+        return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+    };
+}
+var normalizeDigits = (typeof window !== 'undefined' && window.normalizeDigits) ? window.normalizeDigits : function(str) {
+    if (!str) return '';
+    return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+};
+
 async function performAccountsSearch(query) {
     try {
+        const normalizedQuery = normalizeDigits(query).trim().toLowerCase();
         const accounts = await getAllAccounts();
         const allClients = await getAllClients();
         const allCases = await getAllCases();
@@ -1436,14 +1448,14 @@ async function performAccountsSearch(query) {
             const caseYear = caseRecord ? (caseRecord.caseYear || 'غير محدد') : 'غير محدد';
             const caseNumberYear = `${caseNumber} لسنة ${caseYear}`;
 
-            const searchText = [
+            const searchText = normalizeDigits([
                 client ? client.name : '',
                 caseNumberYear,
                 caseRecord ? caseRecord.caseNumber : '',
                 caseRecord ? caseRecord.caseYear : ''
-            ].join(' ').toLowerCase();
+            ].join(' ')).toLowerCase();
 
-            if (searchText.includes(query)) {
+            if (searchText.includes(normalizedQuery)) {
                 filteredAccounts.push(account);
             }
         }

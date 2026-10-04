@@ -142,7 +142,7 @@ function loadSearchContent() {
                             <i class="ri-search-line text-3xl text-white"></i>
                         </div>
                         <h3 class="search-sidebar-heading text-xl font-bold mb-2">البحث بواسطة</h3>
-                        <p class="search-sidebar-muted text-xs">اسم الموكل • اسم الخصم • رقم الدعوى • رقم الحصر • رقم الاستئناف</p>
+                        <p class="search-sidebar-muted text-xs">اسم الموكل • اسم الخصم • رقم الملف • رقم الدعوى • رقم الحصر • رقم الاستئناف • رقم التوكيل</p>
                     </div>
                     
                     <div class="space-y-4">
@@ -529,17 +529,18 @@ function setupBackButton() {
     window.__searchBackBtnBound = true;
     document.addEventListener('click', (e) => {
         const btn = e.target.closest('#back-to-main, #back-to-main-search');
-        if (!btn) return;
+        if (!btn || btn.dataset.boundForClient) return;
         e.preventDefault();
         try {
             if (window.tabsManager) {
-
                 window.tabsManager.switchToTab('main');
+            } else if (typeof window.returnToMainScreen === 'function') {
+                window.returnToMainScreen();
             } else {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             }
         } catch (err) {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         }
     });
 }
@@ -951,28 +952,25 @@ async function filterClientsByStats(filterType) {
 // البحث السريع
 function attachQuickSearchListener() {
     const quickSearch = document.getElementById('quick-search');
+    if (!quickSearch) return;
 
     quickSearch.addEventListener('input', debounce(async (e) => {
         const rawValue = e.target.value;
         try { sessionStorage.setItem('search_query', rawValue); } catch (_) { }
-        const query = rawValue.trim().toLowerCase();
+        const query = rawValue.trim();
         // تصفية تلقائية: إذا كان النص فارغاً، اعرض كل الموكلين
         if (query.length === 0) {
             loadAllClients();
             return;
         }
-        // إذا كان النص أقل من حرفين، لا تبحث
-        if (query.length < 2) {
-            return;
-        }
         await performQuickSearch(query);
-    }, 200));
+    }, 150));
 
     // Close sidebar only when pressing Enter
     quickSearch.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const query = e.target.value.trim();
-            if (query.length >= 2) {
+            if (query.length >= 1) {
                 if (typeof closeMobileSidebar === 'function') closeMobileSidebar();
             }
         }
@@ -1732,206 +1730,285 @@ async function performQuickSearch(query) {
     const token = ++__quickSearchToken;
 
     // مسح النتائج الحالية وعرض مؤشر التحميل
-    clientsList.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="ri-loader-4-line animate-spin text-3xl mb-3"></i><p class="text-lg">جاري البحث السريع...</p></div>';
+    clientsList.innerHTML = '<div class="text-center text-gray-500 py-8"><i class="ri-loader-4-line animate-spin text-3xl mb-3"></i><p class="text-lg">جاري البحث...</p></div>';
 
-    // Normalization helper for Arabic text
+    // مساعدات تنظيف النصوص والأرقام
     const normalizeArabic = (text) => {
         return (text || '').toString().toLowerCase()
             .replace(/[أإآ]/g, 'ا')
             .replace(/[ة]/g, 'ه')
             .replace(/[ي]/g, 'ى');
-    }
-    const normalizedQuery = normalizeArabic(query);
+    };
+
+    const normalizeDigits = (str) => {
+        return (str || '').toString()
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+            .replace(/[۰-۹]/g, d => '۰۱۲۳۴۵۶۷۸۹'.indexOf(d))
+            .trim();
+    };
+
+    const cleanNum = (val) => {
+        if (val == null) return '';
+        const s = normalizeDigits(val).replace(/[^\d]/g, '');
+        return s.replace(/^0+/, '') || (s ? '0' : '');
+    };
 
     try {
+        const trimmedQuery = (query || '').trim();
+        const digitsQuery = normalizeDigits(trimmedQuery);
+        const normalizedTextQuery = normalizeArabic(trimmedQuery);
+
+        // هل البحث رقمي خالص؟ (مثل "1" أو "15" أو "١٥")
+        const isPureNumber = /^\d+$/.test(digitsQuery);
+        const cleanQueryNum = isPureNumber ? cleanNum(digitsQuery) : '';
+
+        // هل البحث رقم مركب مثل "15/2024" أو "15-2024" أو "١٥/٢٠٢٤"؟
+        const compoundMatch = digitsQuery.match(/^(\d+)\s*[\/\-]\s*(\d+)$/);
+        const compNum = compoundMatch ? cleanNum(compoundMatch[1]) : '';
+        const compYear = compoundMatch ? cleanNum(compoundMatch[2]) : '';
+
+        // هل حدد كلمة مفتاحية لرقم ملف (مثل "ملف 1" أو "رقم ملف 1")؟
+        const fileKeywordMatch = digitsQuery.match(/^(?:رقم\s+)?ملف\s*[:#-]?\s*(\d+)$/i);
+        const targetFileNum = fileKeywordMatch ? cleanNum(fileKeywordMatch[1]) : (isPureNumber ? cleanQueryNum : '');
+
+        // هل حدد كلمة مفتاحية لدعوى (مثل "دعوى 15" أو "قضية 15")؟
+        const caseKeywordMatch = digitsQuery.match(/^(?:رقم\s+)?(?:دعوى|قضية)\s*[:#-]?\s*(\d+)(?:\s*[\/\-]\s*(\d+))?$/i);
+        const targetCaseNum = caseKeywordMatch ? cleanNum(caseKeywordMatch[1]) : '';
+        const targetCaseYear = caseKeywordMatch && caseKeywordMatch[2] ? cleanNum(caseKeywordMatch[2]) : '';
+
+        // هل حدد كلمة مفتاحية لحصر (مثل "حصر 5" أو "رقم حصر 5")؟
+        const invKeywordMatch = digitsQuery.match(/^(?:رقم\s+)?حصر\s*[:#-]?\s*(\d+)(?:\s*[\/\-]\s*(\d+))?$/i);
+        const targetInvNum = invKeywordMatch ? cleanNum(invKeywordMatch[1]) : '';
+        const targetInvYear = invKeywordMatch && invKeywordMatch[2] ? cleanNum(invKeywordMatch[2]) : '';
+
+        // هل حدد كلمة مفتاحية لتوكيل (مثل "توكيل 120")؟
+        const poaKeywordMatch = digitsQuery.match(/^(?:رقم\s+)?توكيل\s*[:#-]?\s*(\d+)$/i);
+        const targetPoaNum = poaKeywordMatch ? cleanNum(poaKeywordMatch[1]) : '';
+
+        // هل البحث نصي فقط؟ (يحتوي على أحرف ولا يقتصر على أرقام أو كلمات مفتاحية رقمية)
+        const hasArabicLetters = /[أ-يa-zA-Z]/.test(trimmedQuery);
+        const isKeywordOnly = !!(fileKeywordMatch || caseKeywordMatch || invKeywordMatch || poaKeywordMatch);
+        const shouldMatchText = hasArabicLetters && !isKeywordOnly;
+
         let allMatchingClients = new Map();
-
-        // مرحلة 1: نتائج سريعة بالاسم فقط (تظهر فورًا)
-        const clients = await (typeof getAllClientsCached === 'function' ? getAllClientsCached() : getAllClients());
-        if (token !== __quickSearchToken) return;
-        const clientsById = new Map((Array.isArray(clients) ? clients : []).map(c => [c.id, c]));
-
-        const nameMatches = (Array.isArray(clients) ? clients : []).filter(c => normalizeArabic(c?.name).includes(normalizedQuery));
-        nameMatches.forEach(client => {
-            if (!allMatchingClients.has(client.id)) allMatchingClients.set(client.id, []);
-            allMatchingClients.get(client.id).push(`الاسم: ${client.name}`);
-        });
-
-        // عرض سريع أولي
-        try {
-            if (nameMatches.length > 0) {
-                let htmlFast = '';
-                for (const client of nameMatches.slice(0, 30)) {
-                    htmlFast += __buildClientCardHTML(client, { opponentsCount: 0, casesCount: 0, totalSessions: 0 });
-                }
-                clientsList.innerHTML = htmlFast;
-                attachClientCardListeners();
+        const addMatch = (clientId, badgeText) => {
+            if (!clientId) return;
+            if (!allMatchingClients.has(clientId)) allMatchingClients.set(clientId, []);
+            const list = allMatchingClients.get(clientId);
+            if (!list.includes(badgeText)) {
+                list.push(badgeText);
             }
-        } catch (_) { }
+        };
 
-        // مرحلة 2: بحث شامل + تجهيز العدادات (يتعمل في وقت فاضي)
-        const doFull = async () => {
-            try {
-                if (token !== __quickSearchToken) return;
+        // تحميل متوازي فائق السرعة
+        const [clients, opponents, allCases, allSessions] = await Promise.all([
+            (typeof getAllClientsCached === 'function' ? getAllClientsCached() : getAllClients()),
+            getAllOpponents(),
+            getAllCases(),
+            getAllSessions()
+        ]);
+        if (token !== __quickSearchToken) return;
 
-                const opponents = await getAllOpponents();
-                if (token !== __quickSearchToken) return;
+        const clientsById = new Map((Array.isArray(clients) ? clients : []).map(c => [c.id, c]));
+        const opponentsMap = new Map((Array.isArray(opponents) ? opponents : []).map(o => [o.id, o]));
 
-                const allCases = await getAllCases();
-                if (token !== __quickSearchToken) return;
+        // 1. فحص الموكلين (Clients)
+        for (const client of (Array.isArray(clients) ? clients : [])) {
+            if (!client || !client.id) continue;
 
-                const allSessions = await getAllSessions();
-                if (token !== __quickSearchToken) return;
-
-
-
-                const matchingOpponents = (Array.isArray(opponents) ? opponents : []).filter(o => normalizeArabic(o?.name).includes(normalizedQuery));
-                const matchingOpponentIds = new Set(matchingOpponents.map(o => o.id));
-                const opponentNameById = new Map((Array.isArray(opponents) ? opponents : []).map(o => [o.id, o]));
-
-                // خريطة القضايا لكل موكل + عد الجلسات لكل قضية
-                const casesByClient = new Map();
-                const clientIdByCaseId = new Map();
-                for (const cs of (Array.isArray(allCases) ? allCases : [])) {
-                    const arr = casesByClient.get(cs.clientId) || [];
-                    arr.push(cs);
-                    casesByClient.set(cs.clientId, arr);
-                    try {
-                        if (cs && cs.id != null && cs.clientId != null) {
-                            // Keep both numeric and string keys to avoid type-mismatch issues.
-                            clientIdByCaseId.set(cs.id, cs.clientId);
-                            clientIdByCaseId.set(String(cs.id), cs.clientId);
-                        }
-                    } catch (_) { }
+            // بحث نصي في اسم الموكل (جزئي كالمعتاد)
+            if (shouldMatchText) {
+                if (normalizeArabic(client.name).includes(normalizedTextQuery)) {
+                    addMatch(client.id, `الاسم: ${client.name}`);
                 }
-                const sessionsCountByCase = new Map();
-                for (const s of (Array.isArray(allSessions) ? allSessions : [])) {
-                    sessionsCountByCase.set(s.caseId, (sessionsCountByCase.get(s.caseId) || 0) + 1);
+            }
+        }
+
+        // 2. فحص الخصوم (Opponents)
+        if (shouldMatchText) {
+            const matchingOpponents = (Array.isArray(opponents) ? opponents : []).filter(o => normalizeArabic(o?.name).includes(normalizedTextQuery));
+            const matchingOpponentIds = new Set(matchingOpponents.map(o => o.id));
+
+            for (const cs of (Array.isArray(allCases) ? allCases : [])) {
+                if (!cs || !cs.clientId) continue;
+                if (cs.opponentId && matchingOpponentIds.has(cs.opponentId)) {
+                    const opp = opponentsMap.get(cs.opponentId);
+                    const oppName = (opp && opp.name) ? opp.name : '';
+                    if (oppName) addMatch(cs.clientId, `الخصم: ${oppName}`);
                 }
+            }
+        }
 
-                // تطابق الخصوم: أي قضية خصمها مطابق
-                for (const cs of (Array.isArray(allCases) ? allCases : [])) {
-                    if (!cs || !cs.clientId) continue;
-                    if (cs.opponentId && matchingOpponentIds.has(cs.opponentId)) {
-                        const opp = opponentNameById.get(cs.opponentId);
-                        const oppName = (opp && opp.name) ? opp.name : '';
-                        if (!allMatchingClients.has(cs.clientId)) allMatchingClients.set(cs.clientId, []);
-                        if (oppName) allMatchingClients.get(cs.clientId).push(`الخصم: ${oppName}`);
-                    }
+        // خريطة القضايا لكل موكل
+        const casesByClient = new Map();
+        const clientIdByCaseId = new Map();
+        for (const cs of (Array.isArray(allCases) ? allCases : [])) {
+            const arr = casesByClient.get(cs.clientId) || [];
+            arr.push(cs);
+            casesByClient.set(cs.clientId, arr);
+            if (cs && cs.id != null && cs.clientId != null) {
+                clientIdByCaseId.set(cs.id, cs.clientId);
+                clientIdByCaseId.set(String(cs.id), cs.clientId);
+            }
+        }
+
+        const sessionsCountByCase = new Map();
+        for (const s of (Array.isArray(allSessions) ? allSessions : [])) {
+            sessionsCountByCase.set(s.caseId, (sessionsCountByCase.get(s.caseId) || 0) + 1);
+        }
+
+        // 3. فحص القضايا (Cases) - مطابقة كلية تامة للأرقام
+        for (const cs of (Array.isArray(allCases) ? allCases : [])) {
+            if (!cs || !cs.clientId) continue;
+
+            const fileClean = cleanNum(cs.fileNumber);
+            const caseClean = cleanNum(cs.caseNumber);
+            const caseBaseNum = cleanNum(String(cs.caseNumber || '').split(/[\/\-]/)[0]);
+            const yearClean = cleanNum(cs.caseYear) || cleanNum(String(cs.caseNumber || '').split(/[\/\-]/)[1]);
+            const appClean = cleanNum(cs.appealNumber);
+            const appBaseNum = cleanNum(String(cs.appealNumber || '').split(/[\/\-]/)[0]);
+            const poaClean = cleanNum(cs.poaNumber);
+            const poaBaseNum = cleanNum(String(cs.poaNumber || '').split(/[\/\s]/)[0]);
+
+            // أ) مطابقة رقم الملف (Exact Match تامة!)
+            if (targetFileNum && fileClean === targetFileNum) {
+                addMatch(cs.clientId, `رقم الملف: ${cs.fileNumber}`);
+            }
+
+            // ب) مطابقة رقم وسنة الدعوى
+            if (compoundMatch) {
+                // بحث مركب: 15/2024
+                if ((caseClean === compNum || caseBaseNum === compNum) && yearClean === compYear) {
+                    addMatch(cs.clientId, `رقم الدعوى: ${cs.caseNumber || compNum}/${cs.caseYear || compYear}`);
                 }
-
-                // تطابق أرقام القضايا (دعوى، استئناف)
-                for (const cs of (Array.isArray(allCases) ? allCases : [])) {
-                    if (!cs || !cs.clientId) continue;
-
-                    // Case Number
-                    const num = (cs.caseNumber != null) ? String(cs.caseNumber) : '';
-                    if (num && normalizeArabic(num).includes(normalizedQuery)) {
-                        if (!allMatchingClients.has(cs.clientId)) allMatchingClients.set(cs.clientId, []);
-                        allMatchingClients.get(cs.clientId).push(`رقم الدعوى: ${cs.caseNumber}`);
-                    }
-
-                    // Appeal Number
-                    const appNum = (cs.appealNumber != null) ? String(cs.appealNumber) : '';
-                    if (appNum && normalizeArabic(appNum).includes(normalizedQuery)) {
-                        if (!allMatchingClients.has(cs.clientId)) allMatchingClients.set(cs.clientId, []);
-                        allMatchingClients.get(cs.clientId).push(`رقم الاستئناف: ${cs.appealNumber}`);
-                    }
+            } else if (targetCaseNum) {
+                // كلمة مفتاحية: دعوى 15
+                if ((caseClean === targetCaseNum || caseBaseNum === targetCaseNum) && (!targetCaseYear || yearClean === targetCaseYear)) {
+                    addMatch(cs.clientId, `رقم الدعوى: ${cs.caseNumber}`);
                 }
-
-                // تطابق رقم الحصر من جدول الجلسات
-                for (const s of (Array.isArray(allSessions) ? allSessions : [])) {
-                    const inv = (s && s.inventoryNumber != null) ? String(s.inventoryNumber) : '';
-                    const invYear = (s && s.inventoryYear != null) ? String(s.inventoryYear) : '';
-                    if (!inv) continue;
-                    const invNorm = normalizeArabic(inv);
-                    const yearNorm = normalizeArabic(invYear);
-                    const combo1 = invYear ? normalizeArabic(inv + '/' + invYear) : invNorm;
-                    const combo2 = invYear ? normalizeArabic(inv + ' ' + invYear) : invNorm;
-
-                    if (!(invNorm.includes(normalizedQuery) || (invYear && yearNorm.includes(normalizedQuery)) || combo1.includes(normalizedQuery) || combo2.includes(normalizedQuery))) {
-                        continue;
-                    }
-
-                    // جلساتك بتتسجل على القضية (caseId) مش على الموكل مباشرة (clientId)
-                    // فلو clientId مش موجود داخل السجل، بنجيبه من جدول القضايا.
-                    const cid = (s && s.clientId != null) ? s.clientId : (clientIdByCaseId.get(s.caseId) ?? clientIdByCaseId.get(String(s.caseId)));
-                    if (!cid) continue;
-                    if (!allMatchingClients.has(cid)) allMatchingClients.set(cid, []);
-                    allMatchingClients.get(cid).push(`رقم الحصر: ${inv}${invYear ? (' / ' + invYear) : ''}`);
+            } else if (isPureNumber) {
+                // رقم مجرد: 15 أو 2024 (Exact Match فقط)
+                if (caseClean === cleanQueryNum || caseBaseNum === cleanQueryNum) {
+                    addMatch(cs.clientId, `رقم الدعوى: ${cs.caseNumber}`);
                 }
-
-                const matchingClientIds = Array.from(allMatchingClients.keys());
-                let validMatchingClients = matchingClientIds.map(id => clientsById.get(id)).filter(Boolean);
-                if (token !== __quickSearchToken) return;
-
-                const compareByNameAsc = (a, b) => (a.name || '').localeCompare(b.name || '', 'ar');
-                const compareByNameDesc = (a, b) => (b.name || '').localeCompare(a.name || '', 'ar');
-                const normalizeDate = (v) => {
-                    if (v instanceof Date) return v.getTime();
-                    if (typeof v === 'number') return v;
-                    if (typeof v === 'string') {
-                        const t = Date.parse(v);
-                        return isNaN(t) ? 0 : t;
-                    }
-                    return 0;
-                };
-                const getCreated = (x) => normalizeDate(x?.createdAt ?? x?.created_at ?? x?.created ?? x?.addedAt ?? x?.id ?? 0);
-                const compareByCreatedAsc = (a, b) => getCreated(a) - getCreated(b);
-                const compareByCreatedDesc = (a, b) => getCreated(b) - getCreated(a);
-                const field = sessionStorage.getItem('sort_field') || 'name';
-                const dir = sessionStorage.getItem('sort_dir') || 'asc';
-                if (field === 'name') {
-                    validMatchingClients.sort(dir === 'asc' ? compareByNameAsc : compareByNameDesc);
-                } else {
-                    validMatchingClients.sort(dir === 'asc' ? compareByCreatedAsc : compareByCreatedDesc);
+                if (cleanQueryNum.length === 4 && yearClean === cleanQueryNum) {
+                    addMatch(cs.clientId, `سنة الدعوى: ${cs.caseYear}`);
                 }
+            }
 
-                validMatchingClients = __deferFullyArchivedClientsToBottom(validMatchingClients, casesByClient);
+            // ج) مطابقة رقم الاستئناف (Exact Match)
+            if (isPureNumber && (appClean === cleanQueryNum || appBaseNum === cleanQueryNum)) {
+                addMatch(cs.clientId, `رقم الاستئناف: ${cs.appealNumber}`);
+            } else if (compoundMatch && (appClean === compNum || appBaseNum === compNum) && yearClean === compYear) {
+                addMatch(cs.clientId, `رقم الاستئناف: ${cs.appealNumber}`);
+            }
 
-                if (validMatchingClients.length === 0) {
-                    clientsList.innerHTML = `
-                        <div class="text-center text-gray-500 py-12">
-                            <i class="ri-search-line text-4xl mb-4 text-gray-400"></i>
-                            <p class="text-lg font-medium">لا توجد نتائج للبحث</p>
-                            <p class="text-sm text-gray-400 mt-2">جرب كلمات مفتاحية أخرى</p>
-                        </div>
-                    `;
-                    const displayedResultsElement = document.getElementById('displayed-results');
-                    if (displayedResultsElement) displayedResultsElement.textContent = 0;
-                    return;
+            // د) مطابقة رقم التوكيل
+            if (targetPoaNum && (poaClean === targetPoaNum || poaBaseNum === targetPoaNum)) {
+                addMatch(cs.clientId, `رقم التوكيل: ${cs.poaNumber}`);
+            } else if (isPureNumber && (poaClean === cleanQueryNum || poaBaseNum === cleanQueryNum)) {
+                addMatch(cs.clientId, `رقم التوكيل: ${cs.poaNumber}`);
+            } else if (shouldMatchText && cs.poaNumber && normalizeArabic(cs.poaNumber).includes(normalizedTextQuery)) {
+                addMatch(cs.clientId, `رقم التوكيل: ${cs.poaNumber}`);
+            }
+        }
+
+        // 4. فحص الجلسات (Sessions - رقم وسنة الحصر Exact Match)
+        for (const s of (Array.isArray(allSessions) ? allSessions : [])) {
+            const cid = (s && s.clientId != null) ? s.clientId : (clientIdByCaseId.get(s.caseId) ?? clientIdByCaseId.get(String(s.caseId)));
+            if (!cid) continue;
+
+            const invClean = cleanNum(s.inventoryNumber);
+            const invBaseNum = cleanNum(String(s.inventoryNumber || '').split(/[\/\-]/)[0]);
+            const invYearClean = cleanNum(s.inventoryYear) || cleanNum(String(s.inventoryNumber || '').split(/[\/\-]/)[1]);
+            if (!invClean && !invBaseNum) continue;
+
+            if (compoundMatch) {
+                if ((invClean === compNum || invBaseNum === compNum) && invYearClean === compYear) {
+                    addMatch(cid, `رقم الحصر: ${s.inventoryNumber} / ${s.inventoryYear}`);
                 }
+            } else if (targetInvNum) {
+                if ((invClean === targetInvNum || invBaseNum === targetInvNum) && (!targetInvYear || invYearClean === targetInvYear)) {
+                    addMatch(cid, `رقم الحصر: ${s.inventoryNumber}${s.inventoryYear ? (' / ' + s.inventoryYear) : ''}`);
+                }
+            } else if (isPureNumber) {
+                if (invClean === cleanQueryNum || invBaseNum === cleanQueryNum) {
+                    addMatch(cid, `رقم الحصر: ${s.inventoryNumber}${s.inventoryYear ? (' / ' + s.inventoryYear) : ''}`);
+                }
+            }
+        }
 
-                let clientOpponentRelations = {};
-                try { clientOpponentRelations = JSON.parse(localStorage.getItem('clientOpponentRelations') || '{}'); } catch (_) { clientOpponentRelations = {}; }
+        const matchingClientIds = Array.from(allMatchingClients.keys());
+        let validMatchingClients = matchingClientIds.map(id => clientsById.get(id)).filter(Boolean);
+        if (token !== __quickSearchToken) return;
 
-                let html = '';
-                for (const client of validMatchingClients) {
-                    const cases = casesByClient.get(client.id) || [];
-                    const caseOpponentIds = [...new Set(cases.map(c => c.opponentId).filter(id => id))];
-                    const tempOpponentIds = (clientOpponentRelations && clientOpponentRelations[client.id]) ? clientOpponentRelations[client.id] : [];
-                    const uniqueOpponentIds = [...new Set([...caseOpponentIds, ...tempOpponentIds])];
-                    const opponentsCount = uniqueOpponentIds.length;
-                    let totalSessions = 0;
-                    for (const caseRecord of cases) {
-                        totalSessions += (sessionsCountByCase.get(caseRecord.id) || 0);
-                    }
+        const compareByNameAsc = (a, b) => (a.name || '').localeCompare(b.name || '', 'ar');
+        const compareByNameDesc = (a, b) => (b.name || '').localeCompare(a.name || '', 'ar');
+        const normalizeDate = (v) => {
+            if (v instanceof Date) return v.getTime();
+            if (typeof v === 'number') return v;
+            if (typeof v === 'string') {
+                const t = Date.parse(v);
+                return isNaN(t) ? 0 : t;
+            }
+            return 0;
+        };
+        const getCreated = (x) => normalizeDate(x?.createdAt ?? x?.created_at ?? x?.created ?? x?.addedAt ?? x?.id ?? 0);
+        const compareByCreatedAsc = (a, b) => getCreated(a) - getCreated(b);
+        const compareByCreatedDesc = (a, b) => getCreated(b) - getCreated(a);
+        const field = sessionStorage.getItem('sort_field') || 'name';
+        const dir = sessionStorage.getItem('sort_dir') || 'asc';
+        if (field === 'name') {
+            validMatchingClients.sort(dir === 'asc' ? compareByNameAsc : compareByNameDesc);
+        } else {
+            validMatchingClients.sort(dir === 'asc' ? compareByCreatedAsc : compareByCreatedDesc);
+        }
 
-                    let archiveStatus = 'none';
-                    let archivedCount = 0;
-                    if (cases.length > 0) {
-                        archivedCount = cases.filter(c => c.isArchived === true).length;
-                        if (archivedCount === cases.length) {
-                            archiveStatus = 'all';
-                        } else if (archivedCount > 0) {
-                            archiveStatus = 'partial';
-                        }
-                    }
+        validMatchingClients = __deferFullyArchivedClientsToBottom(validMatchingClients, casesByClient);
 
-                    const matches = allMatchingClients.get(client.id) || [];
-                    const matchesHtml = matches.length > 0 ? `
-                        <div class="flex items-center gap-2 mt-2">
-                            ${matches.slice(0, 3).map(match => {
+        if (validMatchingClients.length === 0) {
+            clientsList.innerHTML = `
+                <div class="text-center text-gray-500 py-12">
+                    <i class="ri-search-line text-4xl mb-4 text-gray-400"></i>
+                    <p class="text-lg font-medium">لا توجد نتائج للبحث</p>
+                    <p class="text-sm text-gray-400 mt-2">جرب أرقام أو كلمات مفتاحية أخرى</p>
+                </div>
+            `;
+            const displayedResultsElement = document.getElementById('displayed-results');
+            if (displayedResultsElement) displayedResultsElement.textContent = 0;
+            return;
+        }
+
+        let clientOpponentRelations = {};
+        try { clientOpponentRelations = JSON.parse(localStorage.getItem('clientOpponentRelations') || '{}'); } catch (_) { clientOpponentRelations = {}; }
+
+        let html = '';
+        for (const client of validMatchingClients) {
+            const cases = casesByClient.get(client.id) || [];
+            const caseOpponentIds = [...new Set(cases.map(c => c.opponentId).filter(id => id))];
+            const tempOpponentIds = (clientOpponentRelations && clientOpponentRelations[client.id]) ? clientOpponentRelations[client.id] : [];
+            const uniqueOpponentIds = [...new Set([...caseOpponentIds, ...tempOpponentIds])];
+            const opponentsCount = uniqueOpponentIds.length;
+            let totalSessions = 0;
+            for (const caseRecord of cases) {
+                totalSessions += (sessionsCountByCase.get(caseRecord.id) || 0);
+            }
+
+            let archiveStatus = 'none';
+            let archivedCount = 0;
+            if (cases.length > 0) {
+                archivedCount = cases.filter(c => c.isArchived === true).length;
+                if (archivedCount === cases.length) {
+                    archiveStatus = 'all';
+                } else if (archivedCount > 0) {
+                    archiveStatus = 'partial';
+                }
+            }
+
+            const matches = allMatchingClients.get(client.id) || [];
+            const matchesHtml = matches.length > 0 ? `
+                <div class="flex items-center gap-2 mt-2">
+                    ${matches.slice(0, 3).map(match => {
                         let bgColor = 'bg-purple-100';
                         let textColor = 'text-purple-700';
                         let iconColor = 'text-purple-600';
@@ -1947,6 +2024,11 @@ async function performQuickSearch(query) {
                             textColor = 'text-red-700';
                             iconColor = 'text-red-600';
                             icon = 'ri-shield-user-line';
+                        } else if (match.includes('رقم الملف:')) {
+                            bgColor = 'bg-sky-100';
+                            textColor = 'text-sky-700';
+                            iconColor = 'text-sky-600';
+                            icon = 'ri-folder-line';
                         } else if (match.includes('رقم الدعوى:') || match.includes('سنة الدعوى:') || match.includes('رقم الاستئناف:')) {
                             bgColor = 'bg-indigo-100';
                             textColor = 'text-indigo-700';
@@ -1965,45 +2047,34 @@ async function performQuickSearch(query) {
                         }
 
                         return `
-                                    <div class="flex items-center gap-1 ${bgColor} px-2 py-1 rounded-full">
-                                        <i class="${icon} ${iconColor} text-xs"></i>
-                                        <span class="text-xs font-medium ${textColor}">${match}</span>
-                                    </div>
-                                `;
+                            <div class="flex items-center gap-1 ${bgColor} px-2 py-1 rounded-full">
+                                <i class="${icon} ${iconColor} text-xs"></i>
+                                <span class="text-xs font-medium ${textColor}">${match}</span>
+                            </div>
+                        `;
                     }).join('')}
-                            ${matches.length > 3 ? `
-                                <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
-                                    <i class="ri-more-line text-gray-600 text-xs"></i>
-                                    <span class="text-xs font-medium text-gray-700">+${matches.length - 3}</span>
-                                </div>
-                            ` : ''}
+                    ${matches.length > 3 ? `
+                        <div class="flex items-center gap-1 bg-gray-100 px-2 py-1 rounded-full">
+                            <i class="ri-more-line text-gray-600 text-xs"></i>
+                            <span class="text-xs font-medium text-gray-700">+${matches.length - 3}</span>
                         </div>
-                    ` : '';
+                    ` : ''}
+                </div>
+            ` : '';
 
-                    html += __buildClientCardHTML(client, { 
-                        opponentsCount, 
-                        casesCount: cases.length, 
-                        totalSessions, 
-                        archiveStatus, 
-                        archivedCount,
-                        matchesHtml 
-                    });
-                }
-
-                if (token !== __quickSearchToken) return;
-                clientsList.innerHTML = html;
-                attachClientCardListeners();
-            } catch (e) {
-                // تجاهل
-            }
-        };
-
-        if (typeof requestIdleCallback === 'function') {
-            requestIdleCallback(() => { try { doFull(); } catch (_) { } }, { timeout: 1200 });
-        } else {
-            setTimeout(() => { try { doFull(); } catch (_) { } }, 0);
+            html += __buildClientCardHTML(client, { 
+                opponentsCount, 
+                casesCount: cases.length, 
+                totalSessions, 
+                archiveStatus, 
+                archivedCount,
+                matchesHtml 
+            });
         }
 
+        if (token !== __quickSearchToken) return;
+        clientsList.innerHTML = html;
+        attachClientCardListeners();
     } catch (error) {
         console.error('Search error:', error);
         clientsList.innerHTML = `

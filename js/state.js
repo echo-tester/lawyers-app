@@ -28,3 +28,9 @@ const stateManager = {
         this.resetCaseState();
     }
 };
+
+try {
+    if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('onlineTimeOffsetMs');
+    }
+} catch (_) { }

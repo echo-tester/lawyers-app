@@ -561,8 +561,28 @@ function bindStepHandlers(stepId){
             if (wizardState && typeof wizardState.officeName === 'string') {
                 officeInput.value = wizardState.officeName;
             }
+            let lastOfficeToastTime = 0;
             const syncOfficeName = () => {
-                wizardState.officeName = (officeInput.value || '').trim();
+                const raw = officeInput.value || '';
+                if (raw.length > 15) {
+                    const now = Date.now();
+                    if (now - lastOfficeToastTime > 1500) {
+                        lastOfficeToastTime = now;
+                        try {
+                            if (typeof showToast === 'function') {
+                                showToast('الحد الأقصى لاسم المكتب هو 15 حرفاً', 'warning');
+                            }
+                        } catch (_) { }
+                    }
+                }
+                const cleaned = raw
+                    .replace(/[^\u0600-\u06FFa-zA-Z0-9\s]/g, '')
+                    .replace(/\s+/g, ' ')
+                    .substring(0, 15);
+                if (officeInput.value !== cleaned) {
+                    officeInput.value = cleaned;
+                }
+                wizardState.officeName = cleaned.trim();
                 
                 if (officeNameError) officeNameError.classList.add('hidden');
             };
@@ -698,7 +718,11 @@ function bindStepHandlers(stepId){
 
                         const pickStrongRecommended = (arr) => {
                             try {
-                                const fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.driveType) === 3);
+                                let fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.driveType) === 3);
+                                if (!fixed.length) {
+                                    fixed = (Array.isArray(arr) ? arr : []).filter(x => Number(x && x.freeSpace) > 0);
+                                }
+                                if (!fixed.length) fixed = arr || [];
                                 if (!fixed.length) return null;
                                 let best = fixed[0];
                                 for (const d of fixed) {
@@ -1116,7 +1140,7 @@ async function handleNext(){
             
             localStorage.setItem('lawyer_app_setup_completed', 'true');
         } catch (e) {}
-        window.location.href = 'index.html';
+        window.location.replace('index.html');
     }
 }
 
@@ -1210,8 +1234,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
                     try { await setSetting('firstRunCompleted', true); } catch (e) { }
                     try { localStorage.setItem('lawyer_app_setup_completed', 'true'); } catch (e) { }
+                    try { sessionStorage.setItem('lawyer_app_test_unlocked', 'true'); } catch (e) { }
 
-                    try { window.location.href = 'index.html'; } catch (e) { }
+                    try { window.location.replace('index.html'); } catch (e) { }
                 } catch (e) { }
             });
         }
@@ -1238,6 +1263,105 @@ document.addEventListener('DOMContentLoaded', async () => {
     } catch (e) {}
 });
 
+function dynamicallyAdjustSampleDataDates(sampleData) {
+    if (!sampleData || typeof sampleData !== 'object') return sampleData;
+
+    try {
+        const cloned = JSON.parse(JSON.stringify(sampleData));
+        const data = (cloned.data && typeof cloned.data === 'object') ? cloned.data : cloned;
+
+        // نقطة الارتكاز للبيانات التجريبية الأصلية: 8 سبتمبر 2026 تمثل "اليوم"
+        const pivotDate = new Date(2026, 8, 8); // شهر 8 هو سبتمبر (0-indexed)
+        const now = new Date();
+        const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+        const dayDiff = Math.round((today.getTime() - pivotDate.getTime()) / (1000 * 60 * 60 * 24));
+        if (!dayDiff || isNaN(dayDiff)) return cloned;
+
+        const shiftDate = (dateStr) => {
+            if (!dateStr || typeof dateStr !== 'string') return dateStr;
+            const m = dateStr.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/);
+            if (!m) return dateStr;
+            const y = parseInt(m[1], 10);
+            const mon = parseInt(m[2], 10) - 1;
+            const d = parseInt(m[3], 10);
+            const dt = new Date(y, mon, d);
+            dt.setDate(dt.getDate() + dayDiff);
+            const ny = dt.getFullYear();
+            const nm = String(dt.getMonth() + 1).padStart(2, '0');
+            const nd = String(dt.getDate()).padStart(2, '0');
+            return `${ny}-${nm}-${nd}`;
+        };
+
+        const shiftIso = (isoStr) => {
+            if (!isoStr || typeof isoStr !== 'string') return isoStr;
+            try {
+                const dt = new Date(isoStr);
+                if (isNaN(dt.getTime())) return isoStr;
+                dt.setDate(dt.getDate() + dayDiff);
+                return dt.toISOString();
+            } catch (_) {
+                return isoStr;
+            }
+        };
+
+        // 1. الجلسات (sessions)
+        if (Array.isArray(data.sessions)) {
+            data.sessions.forEach(s => {
+                if (s && s.sessionDate) s.sessionDate = shiftDate(s.sessionDate);
+            });
+        }
+
+        // 2. جلسات الخبراء (expertSessions)
+        if (Array.isArray(data.expertSessions)) {
+            data.expertSessions.forEach(es => {
+                if (es && es.sessionDate) es.sessionDate = shiftDate(es.sessionDate);
+            });
+        }
+
+        // 3. أوراق المحضرين (clerkPapers)
+        if (Array.isArray(data.clerkPapers)) {
+            data.clerkPapers.forEach(cp => {
+                if (cp) {
+                    if (cp.deliveryDate) cp.deliveryDate = shiftDate(cp.deliveryDate);
+                    if (cp.receiptDate) cp.receiptDate = shiftDate(cp.receiptDate);
+                }
+            });
+        }
+
+        // 4. الأعمال والمهام الإدارية (administrative)
+        if (Array.isArray(data.administrative)) {
+            data.administrative.forEach(ad => {
+                if (ad && ad.dueDate) ad.dueDate = shiftDate(ad.dueDate);
+            });
+        }
+
+        // 5. الحسابات والمدفوعات (accounts)
+        if (Array.isArray(data.accounts)) {
+            data.accounts.forEach(acc => {
+                if (acc) {
+                    if (acc.paymentDate) acc.paymentDate = shiftDate(acc.paymentDate);
+                    if (acc.createdAt) acc.createdAt = shiftIso(acc.createdAt);
+                    if (acc.updatedAt) acc.updatedAt = shiftIso(acc.updatedAt);
+                    if (Array.isArray(acc.payments)) {
+                        acc.payments.forEach(p => {
+                            if (p) {
+                                if (p.paymentDate) p.paymentDate = shiftDate(p.paymentDate);
+                                if (p.createdAt) p.createdAt = shiftIso(p.createdAt);
+                            }
+                        });
+                    }
+                }
+            });
+        }
+
+        return cloned;
+    } catch (err) {
+        console.error('Error shifting demo data dates:', err);
+        return sampleData;
+    }
+}
+
 async function importSampleData() {
     const tryPaths = ['test-data.json', 'test-data/test-data.json', 'data/test-data.json'];
     for (const p of tryPaths) {
@@ -1245,7 +1369,8 @@ async function importSampleData() {
             const res = await fetch(p);
             if (!res.ok) continue;
             const backupData = await res.json();
-            await restoreBackup(backupData);
+            const adjustedData = dynamicallyAdjustSampleDataDates(backupData);
+            await restoreBackup(adjustedData);
             try { if (typeof showToast === 'function') showToast('تم تحميل البيانات الوهمية'); } catch (e) {}
             return true;
         } catch (e) {}
@@ -1265,7 +1390,8 @@ async function importSampleData() {
             await loadScript(p);
             const candidate = (window && (window.__LAW_APP_TEST_DATA || window.TEST_DATA || window.SAMPLE_DATA)) || null;
             if (candidate && typeof candidate === 'object') {
-                await restoreBackup(candidate);
+                const adjustedData = dynamicallyAdjustSampleDataDates(candidate);
+                await restoreBackup(adjustedData);
                 try { if (typeof showToast === 'function') showToast('تم تحميل البيانات الوهمية'); } catch (e) {}
                 return true;
             }
@@ -1353,21 +1479,53 @@ async function restoreBackup(backupData) {
 
     await initDB();
     const expectedStores = ['clients', 'opponents', 'cases', 'sessions', 'accounts', 'administrative', 'clerkPapers', 'expertSessions'];
+
+    // أخذ نسخة أمان قبل البدء في مسح أي جدول
+    const safetySnapshot = {};
+    for (const storeName of expectedStores) {
+        safetySnapshot[storeName] = await new Promise((res) => {
+            const dbInstance = getDbInstance();
+            if (!dbInstance) return res([]);
+            try {
+                const tx = dbInstance.transaction([storeName], 'readonly');
+                const st = tx.objectStore(storeName);
+                const req = st.getAll();
+                req.onsuccess = () => res(req.result || []);
+                req.onerror = () => res([]);
+            } catch (_) { res([]); }
+        });
+    }
+
     for (const storeName of expectedStores) { try { await clearStore(storeName); } catch (e) {} }
-    for (const [storeName, records] of Object.entries(dataToRestore)) {
-        if (storeName === 'settings') continue;
-        if (Array.isArray(records) && records.length > 0) {
-            for (const record of records) {
-                if (record && typeof record === 'object') {
-                    if (storeName === 'cases') {
-                        try {
-                            if (typeof applyCaseNumberYearKey === 'function') applyCaseNumberYearKey(record);
-                        } catch (_) { }
+
+    try {
+        for (const [storeName, records] of Object.entries(dataToRestore)) {
+            if (storeName === 'settings') continue;
+            if (Array.isArray(records) && records.length > 0) {
+                for (const record of records) {
+                    if (record && typeof record === 'object') {
+                        if (storeName === 'cases') {
+                            try {
+                                if (typeof applyCaseNumberYearKey === 'function') applyCaseNumberYearKey(record);
+                            } catch (_) { }
+                        }
+                        if (record.id) { await putRecord(storeName, record); } else { await addRecord(storeName, record); }
                     }
-                    if (record.id) { await putRecord(storeName, record); } else { await addRecord(storeName, record); }
                 }
             }
         }
+    } catch (restoreErr) {
+        console.error('Setup restoreBackup failed, rolling back to safety snapshot:', restoreErr);
+        for (const storeName of expectedStores) {
+            try {
+                await clearStore(storeName);
+                const oldRecs = safetySnapshot[storeName] || [];
+                for (const rec of oldRecs) {
+                    if (rec && rec.id != null) { await putRecord(storeName, rec); } else { await addRecord(storeName, rec); }
+                }
+            } catch (_) {}
+        }
+        throw restoreErr;
     }
 }
 

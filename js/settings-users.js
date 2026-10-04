@@ -54,11 +54,11 @@
                     <div class="sm:hidden text-center font-bold text-gray-800 mb-2">ادارة المستخدمين</div>
                     <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                         <div class="flex-1 min-w-0">
-                            <input id="users-new-username" type="text" class="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" placeholder="اسم المستخدم">
+                            <input id="users-new-username" type="text" maxlength="15" class="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" placeholder="اسم المستخدم">
                         </div>
                         <div class="flex-[2] min-w-0">
                             <div class="relative">
-                                <input id="users-new-password" type="text" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" placeholder="كلمة المرور" style="padding-left:42px;-webkit-text-security:disc;">
+                                <input id="users-new-password" type="text" maxlength="15" class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" placeholder="كلمة المرور" style="padding-left:42px;-webkit-text-security:disc;">
                                 <button id="toggle-users-new-password" type="button" class="absolute flex items-center justify-center" style="top:50%;transform:translateY(-50%);left:8px;width:32px;height:32px;border-radius:9999px;background:transparent;color:#4b5563;display:none;">
                                     <i class="ri-eye-line text-lg"></i>
                                 </button>
@@ -120,6 +120,19 @@
             }
 
             attachEyeToggle(passwordInput, container.querySelector('#toggle-users-new-password'));
+            if (usernameInput) {
+                usernameInput.addEventListener('input', () => {
+                    if (usernameInput.value && usernameInput.value.length > 15) {
+                        usernameInput.value = usernameInput.value.slice(0, 15);
+                    }
+                });
+            }
+            if (passwordInput) {
+                passwordInput.addEventListener('input', () => {
+                    const clean = (passwordInput.value || '').replace(/\D/g, '').slice(0, 15);
+                    if (passwordInput.value !== clean) passwordInput.value = clean;
+                });
+            }
 
             const escapeHtml = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 
@@ -133,9 +146,7 @@
                 { id: 'expert-sessions', label: 'جلسات الخبراء' },
                 { id: 'services', label: 'الخدمات' },
                 { id: 'legal-library', label: 'المكتبة القانونية' },
-                { id: 'reports', label: 'التقارير' },
-                { id: 'settings', label: 'الإعدادات' },
-                { id: 'sync', label: 'المزامنة' }
+                { id: 'reports', label: 'التقارير' }
             ];
 
             const normalizeDenied = (value) => {
@@ -266,7 +277,7 @@
                         row.innerHTML = `
                             <div class="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                                 <div class="flex-1 min-w-0">
-                                        <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm">
+                                    <div class="w-full px-3 py-2 border border-gray-300 rounded-lg bg-white shadow-sm">
                                         <div class="font-bold text-gray-800 text-sm">
                                             <div class="flex items-center justify-center gap-1">
                                                 <i class="${isAdminRow ? 'ri-shield-star-line text-emerald-700' : 'ri-user-3-line text-gray-500'}"></i>
@@ -277,7 +288,7 @@
                                 </div>
                                 <div class="flex-[2] min-w-0">
                                     <div class="relative">
-                                        <input data-user-password="${String(u.id)}" type="text" class="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" style="padding-left:42px;-webkit-text-security:disc;" value="${escapeHtml(u.password || '')}" placeholder="كلمة المرور">
+                                        <input data-user-password="${String(u.id)}" type="text" maxlength="15" class="w-full h-10 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-600 text-center text-sm bg-white transition-all shadow-sm" style="padding-left:42px;-webkit-text-security:disc;" value="${escapeHtml(u.password || '')}" placeholder="كلمة المرور">
                                         <button data-user-toggle="${String(u.id)}" type="button" class="absolute flex items-center justify-center" style="top:50%;transform:translateY(-50%);left:8px;width:32px;height:32px;border-radius:9999px;background:transparent;color:#4b5563;display:none;">
                                             <i class="ri-eye-line text-lg"></i>
                                         </button>
@@ -326,7 +337,6 @@
 
                     try {
                         listEl.querySelectorAll('[data-user-password]').forEach((inp) => {
-                            // حفظ كلمة المرور يكون فقط عبر زر الحفظ لتجنب تكرار التوست
                             try {
                                 const idStr = String(inp.getAttribute('data-user-password') || '').trim();
                                 const id = parseInt(idStr, 10);
@@ -334,30 +344,50 @@
 
                                 const scheduleSave = async () => {
                                     try {
+                                        if (inp.dataset.saving === '1') return;
+                                        const newPass = (inp && inp.value != null) ? String(inp.value) : '';
+                                        if (inp.dataset.lastSaved === newPass) return;
+
                                         const user = (typeof getById === 'function') ? await getById('users', id) : null;
                                         if (!user) return;
-                                        const newPass = (inp && inp.value != null) ? String(inp.value) : '';
+                                        if (String(user.password || '') === newPass && inp.dataset.dirty !== '1') {
+                                            inp.dataset.lastSaved = newPass;
+                                            return;
+                                        }
+
+                                        inp.dataset.saving = '1';
+                                        inp.dataset.dirty = '0';
+                                        inp.dataset.lastSaved = newPass;
                                         await savePasswordForUser(user, newPass, inp);
-                                    } catch (e) { }
+                                    } catch (e) {
+                                    } finally {
+                                        setTimeout(() => {
+                                            try { if (inp.dataset) inp.dataset.saving = '0'; } catch (_) { }
+                                        }, 400);
+                                    }
                                 };
 
-                                const debounceSave = () => {
+                                const saveImmediate = () => {
                                     try {
                                         const prev = passwordSaveTimers.get(id);
                                         if (prev) clearTimeout(prev);
-                                        const t = setTimeout(() => { scheduleSave(); }, 600);
-                                        passwordSaveTimers.set(id, t);
                                     } catch (e) { }
+                                    scheduleSave();
                                 };
 
                                 if (!(inp.dataset && inp.dataset.autoSaveBound === '1')) {
-                                    inp.addEventListener('blur', debounceSave);
-                                    inp.addEventListener('change', debounceSave);
+                                    inp.addEventListener('input', () => {
+                                        const clean = (inp.value || '').replace(/\D/g, '').slice(0, 15);
+                                        if (inp.value !== clean) inp.value = clean;
+                                        inp.dataset.dirty = '1';
+                                    });
+                                    // حفظ تلقائي فوري في الهاتف بمجرد الخروج من الحقل (blur) بدون تكرار
+                                    inp.addEventListener('blur', saveImmediate);
                                     inp.addEventListener('keydown', (e) => {
                                         try {
                                             if (e.key === 'Enter') {
                                                 e.preventDefault();
-                                                debounceSave();
+                                                saveImmediate();
                                                 try { inp.blur(); } catch (err) { }
                                             }
                                         } catch (err) { }
@@ -455,13 +485,33 @@
             if (addBtn) {
                 addBtn.addEventListener('click', async () => {
                     try {
-                        const username = (usernameInput && usernameInput.value ? usernameInput.value.trim() : '');
-                        const password = (passwordInput && passwordInput.value != null) ? String(passwordInput.value) : '';
+                        const rawName = (usernameInput && usernameInput.value ? usernameInput.value.trim() : '');
+                        const username = rawName.slice(0, 15);
+                        const password = (passwordInput && passwordInput.value != null) ? String(passwordInput.value).replace(/\D/g, '').slice(0, 15) : '';
                         if (!username) {
                             try { if (typeof showToast === 'function') showToast('يرجى إدخال اسم المستخدم', 'error'); } catch (e) { }
                             try { if (usernameInput) usernameInput.focus(); } catch (e) { }
                             return;
                         }
+
+                        const uLower = username.toLowerCase();
+                        if (uLower === 'admin' || uLower === 'أدمن') {
+                            try { if (typeof showToast === 'function') showToast('اسم المستخدم محجوز للنظام', 'error'); } catch (e) { }
+                            try { if (usernameInput) usernameInput.focus(); } catch (e) { }
+                            return;
+                        }
+
+                        let existingUsers = [];
+                        try {
+                            existingUsers = (typeof getAllUsers === 'function') ? await getAllUsers() : [];
+                        } catch (_) { existingUsers = []; }
+
+                        if (Array.isArray(existingUsers) && existingUsers.some(u => u && String(u.username || '').trim().toLowerCase() === uLower)) {
+                            try { if (typeof showToast === 'function') showToast('اسم المستخدم موجود بالفعل', 'error'); } catch (e) { }
+                            try { if (usernameInput) usernameInput.focus(); } catch (e) { }
+                            return;
+                        }
+
                         try {
                             await (typeof addUser === 'function' ? addUser({ username, password, isAdmin: false, deniedFeatures: [], createdAt: new Date().toISOString() }) : Promise.reject(new Error('MissingAddUser')));
                             try {

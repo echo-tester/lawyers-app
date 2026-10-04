@@ -153,7 +153,7 @@ function navigateBack() {
                 } else {
                     if (stateManager.modalHistory.length <= 1) {
                         if (isStandalonePage) {
-                            window.location.href = 'index.html';
+                            window.location.replace('index.html');
                         } else {
                             closeModal();
                         }
@@ -171,7 +171,7 @@ function navigateBack() {
     
     if (stateManager.modalHistory.length <= 1) {
         if (isStandalonePage) {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         } else {
             closeModal();
         }
@@ -193,7 +193,7 @@ function navigateBack() {
     if (targetIndex < 0) {
         
         if (isStandalonePage) {
-            window.location.href = 'index.html';
+            window.location.replace('index.html');
         } else {
             closeModal();
         }

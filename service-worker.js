@@ -1,4 +1,4 @@
-const CACHE_NAME = 'lawyer-pwa-v4.0.7';
+const CACHE_NAME = 'lawyer-pwa-v5.0.0';
 const CACHE_PREFIX = 'lawyer-pwa-v';
 
 const PRECACHE_URLS = [
@@ -24,6 +24,7 @@ const PRECACHE_URLS = [
   './license_ar.txt',
   './manifest.json',
   
+  './favicon.ico',
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon-mobile.png',
@@ -84,6 +85,7 @@ const PRECACHE_URLS = [
   './js/reports-expert-sessions.js',
   './js/reports-main.js',
   './js/reports-poa.js',
+  './js/reports-sessions-agenda.js',
   './js/safe-confirm.js',
   './js/search-page.js',
   './js/services.js',
@@ -215,11 +217,8 @@ async function precacheUrls(urls, sourceId, options) {
 }
 
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    (async () => {
-      await self.skipWaiting();
-    })()
-  );
+  // لا نقوم بـ skipWaiting تلقائياً لتفادي كسر كاش الأوفلاين أثناء عمل المستخدم.
+  // التحديث يتم تفعيله فقط عندما يطلب المستخدم ذلك عبر رسالة SKIP_WAITING.
 });
 
 self.addEventListener('activate', (event) => {
@@ -282,31 +281,42 @@ self.addEventListener('fetch', (event) => {
   } catch (_) { }
 
   event.respondWith(
-    caches.open(CACHE_NAME).then((cache) => {
-      return cache.match(req, isSameOrigin ? { ignoreSearch: true } : undefined).then((cached) => {
-        if (cached) return cached;
+    (async () => {
+      const matchOptions = isSameOrigin ? { ignoreSearch: true } : undefined;
+      const cache = await caches.open(CACHE_NAME);
 
-        return fetch(req)
-          .catch(() => {
-            if (req.mode === 'navigate') {
-              return cache.match(req, isSameOrigin ? { ignoreSearch: true } : undefined)
-                .then((navCached) => {
-                  if (navCached) return navCached;
+      // 1. نبحث أولاً في كاش الإصدار الحالي
+      let cached = await cache.match(req, matchOptions);
+      if (cached) return cached;
 
-                  try {
-                    const u = new URL(req.url);
-                    const p = (u && u.pathname) ? String(u.pathname) : '';
-                    if (/\/setup\.html$/i.test(p)) {
-                      return cache.match('./setup.html') || cache.match('./index.html');
-                    }
-                  } catch (_) { }
+      // 2. إذا لم نجد الملف، نبحث في أي كاش محفوظ في المتصفح
+      cached = await caches.match(req, matchOptions);
+      if (cached) return cached;
 
-                  return cache.match('./index.html');
-                });
+      // 3. إذا لم يكن متوفراً في الكاش، نحاول جلبه من الشبكة
+      try {
+        return await fetch(req);
+      } catch (_) {
+        // 4. في حالة عدم توفر الشبكة (أوفلاين)
+        if (req.mode === 'navigate') {
+          const navCached = (await cache.match(req, matchOptions)) || (await caches.match(req, matchOptions));
+          if (navCached) return navCached;
+
+          try {
+            const u = new URL(req.url);
+            const p = (u && u.pathname) ? String(u.pathname) : '';
+            if (/\/setup\.html$/i.test(p)) {
+              const setupRes = await cache.match('./setup.html') || await caches.match('./setup.html');
+              if (setupRes) return setupRes;
             }
-            return new Response('', { status: 503, statusText: 'Service Unavailable' });
-          });
-      });
-    })
+          } catch (_) { }
+
+          const indexRes = await cache.match('./index.html') || await caches.match('./index.html');
+          if (indexRes) return indexRes;
+        }
+
+        return new Response('', { status: 404, statusText: 'Offline Resource Not Found' });
+      }
+    })()
   );
 });

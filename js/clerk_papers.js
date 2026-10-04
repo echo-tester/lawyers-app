@@ -139,7 +139,7 @@ function displayClerkPapersModal() {
             backBtn.parentNode.replaceChild(newBackBtn, backBtn);
 
             newBackBtn.addEventListener('click', function () {
-                window.location.href = 'index.html';
+                window.location.replace('index.html');
             });
         }
     }, 100);
@@ -672,13 +672,13 @@ function createClerkPaperCard(paper, clientData) {
 
                         <!-- Column 2: Receipt & Delivery -->
                         <div class="grid grid-cols-2 gap-2 md:flex md:flex-col md:gap-1.5 w-full md:w-auto min-w-0">
-                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
-                                <span class="text-[11px] text-gray-700 shrink-0">تاريخ الاستلام:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${__formatClerkPapersDateForDisplay(paper.receiptDate)}">${__formatClerkPapersDateForDisplay(paper.receiptDate)}</span>
+                            <div class="bg-white border border-slate-200 rounded px-1.5 md:px-2 min-h-[32px] flex items-center justify-start gap-1 md:gap-2 text-center w-full md:w-fit max-w-full min-w-0">
+                                <span class="text-[11px] text-gray-700 shrink-0"><span class="hidden md:inline">تاريخ </span>الاستلام:</span>
+                                <span class="text-[11px] md:text-xs font-bold text-gray-900 whitespace-nowrap min-w-0" title="${__formatClerkPapersDateForDisplay(paper.receiptDate)}">${__formatClerkPapersDateForDisplay(paper.receiptDate)}</span>
                             </div>
-                            <div class="bg-white border border-slate-200 rounded px-2 min-h-[32px] flex items-center justify-start gap-2 text-center w-full md:w-fit max-w-full min-w-0">
-                                <span class="text-[11px] text-gray-700 shrink-0">تاريخ التسليم:</span>
-                                <span class="text-xs font-bold text-gray-900 truncate min-w-0" title="${__formatClerkPapersDateForDisplay(paper.deliveryDate)}">${__formatClerkPapersDateForDisplay(paper.deliveryDate)}</span>
+                            <div class="bg-white border border-slate-200 rounded px-1.5 md:px-2 min-h-[32px] flex items-center justify-start gap-1 md:gap-2 text-center w-full md:w-fit max-w-full min-w-0">
+                                <span class="text-[11px] text-gray-700 shrink-0"><span class="hidden md:inline">تاريخ </span>التسليم:</span>
+                                <span class="text-[11px] md:text-xs font-bold text-gray-900 whitespace-nowrap min-w-0" title="${__formatClerkPapersDateForDisplay(paper.deliveryDate)}">${__formatClerkPapersDateForDisplay(paper.deliveryDate)}</span>
                             </div>
                         </div>
 
@@ -753,6 +753,12 @@ async function updateClerkPapersStats() {
 }
 
 
+var normalizeDigits = window.normalizeDigits || function(str) {
+    if (!str) return '';
+    return String(str).replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d));
+};
+window.normalizeDigits = normalizeDigits;
+
 async function filterClerkPapers(searchTerm) {
     if (!searchTerm) {
         loadAllClerkPapers();
@@ -766,13 +772,14 @@ async function filterClerkPapers(searchTerm) {
         const cases = await getAllCases();
         const clientsMap = new Map(Array.isArray(clients) ? clients.map(c => [c.id, c]) : []);
 
+        const cleanSearch = normalizeDigits(searchTerm).trim().toLowerCase();
+
         const filteredPapers = allPapers.filter(paper => {
             const clientData = clientsMap.get(paper.clientId);
+            const clientName = clientData ? normalizeDigits(clientData.name).toLowerCase() : '';
+            const paperNum = paper.paperNumber ? normalizeDigits(paper.paperNumber).toLowerCase() : '';
 
-            return (
-                (clientData && clientData.name.includes(searchTerm)) ||
-                (paper.paperNumber && paper.paperNumber.includes(searchTerm))
-            );
+            return clientName.includes(cleanSearch) || paperNum.includes(cleanSearch);
         });
 
         displayClerkPapersList(filteredPapers, clients, cases);

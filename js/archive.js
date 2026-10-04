@@ -167,7 +167,6 @@ function attachArchiveListeners() {
         if (archiveSearchTimer) clearTimeout(archiveSearchTimer);
         archiveSearchTimer = setTimeout(async () => {
             if (query.length < 2) {
-
                 expandedClients.clear();
                 saveArchiveState();
                 loadArchiveContent();
@@ -177,7 +176,6 @@ function attachArchiveListeners() {
         }, 300);
     });
 
-    
     archiveSearch.addEventListener('keydown', (e) => {
         if (e.key === 'Enter') {
             const query = e.target.value.trim();
@@ -636,6 +634,19 @@ async function updateArchiveStats() {
 }
 
 
+if (typeof window !== 'undefined' && !window.normalizeDigits) {
+    window.normalizeDigits = function(str) {
+        return (str || '').toString()
+            .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+            .trim();
+    };
+}
+var normalizeDigits = (typeof window !== 'undefined' && window.normalizeDigits) ? window.normalizeDigits : function(str) {
+    return (str || '').toString()
+        .replace(/[٠-٩]/g, d => '٠١٢٣٤٥٦٧٨٩'.indexOf(d))
+        .trim();
+};
+
 async function performArchiveSearch(query) {
     if (archiveViewMode === 'clients') {
         await performClientsSearch(query);
@@ -647,21 +658,19 @@ async function performArchiveSearch(query) {
 
 async function performClientsSearch(query) {
     try {
+        const normalizedQuery = normalizeDigits(query).toLowerCase();
         const allClients = await getAllClients();
         const allCases = await getAllCases();
         const clientsMap = new Map(Array.isArray(allClients) ? allClients.map(c => [c.id, c]) : []);
 
-
         const matchingClients = allClients.filter(client =>
-            client.name.toLowerCase().includes(query)
+            normalizeDigits(client.name).toLowerCase().includes(normalizedQuery)
         );
-
 
         const matchingCases = allCases.filter(caseRecord =>
-            `${caseRecord.caseNumber} لسنة ${caseRecord.caseYear}`.toLowerCase().includes(query) ||
-            (caseRecord.caseType && caseRecord.caseType.toLowerCase().includes(query))
+            normalizeDigits(`${caseRecord.caseNumber} لسنة ${caseRecord.caseYear}`).toLowerCase().includes(normalizedQuery) ||
+            (caseRecord.caseType && caseRecord.caseType.toLowerCase().includes(normalizedQuery))
         );
-
 
         const clientGroups = {};
 
@@ -825,20 +834,21 @@ async function performClientsSearch(query) {
 
 async function performCasesListSearch(query) {
     try {
+        const normalizedQuery = normalizeDigits(query).toLowerCase();
         const allCases = await getAllCases();
         const allClients = await getAllClients();
 
         const matchingCases = allCases.filter(caseRecord => {
             const client = allClients.find(c => c.id === caseRecord.clientId);
-            const clientName = client ? client.name.toLowerCase() : '';
-            const caseNumber = `${caseRecord.caseNumber} لسنة ${caseRecord.caseYear}`.toLowerCase();
+            const clientName = client ? normalizeDigits(client.name).toLowerCase() : '';
+            const caseNumber = normalizeDigits(`${caseRecord.caseNumber} لسنة ${caseRecord.caseYear}`).toLowerCase();
             const caseType = (caseRecord.caseType || '').toLowerCase();
             const court = (caseRecord.court || '').toLowerCase();
 
-            return clientName.includes(query) ||
-                caseNumber.includes(query) ||
-                caseType.includes(query) ||
-                court.includes(query);
+            return clientName.includes(normalizedQuery) ||
+                caseNumber.includes(normalizedQuery) ||
+                caseType.includes(normalizedQuery) ||
+                court.includes(normalizedQuery);
         });
 
         const archiveList = document.getElementById('archive-list');
